@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Durkay Koşucuları · Yarış Planlayıcı</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700;1,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
   :root {
     --lime: #C8F135;
@@ -274,14 +276,10 @@
     gap: 12px; color: var(--muted); border: 1px dashed rgba(255,255,255,0.1);
     margin-top: 20px; position: relative; overflow: hidden;
   }
-  .map-dot {
-    position: absolute; width: 10px; height: 10px; background: var(--lime);
-    border-radius: 50%; box-shadow: 0 0 12px var(--lime); animation: pulse 2s infinite;
+  .snap-map-legend {
+    display: flex; gap: 16px; margin-top: 10px; font-size: 12px; color: var(--muted);
   }
-  @keyframes pulse {
-    0%,100% { transform: scale(1); opacity: 1; }
-    50%      { transform: scale(1.6); opacity: 0.5; }
-  }
+  .snap-map-legend span { display: flex; align-items: center; gap: 5px; }
 
   .snap-action-bar {
     display: flex; gap: 12px; margin-top: 48px; padding-top: 32px;
@@ -331,7 +329,7 @@
     <h1 class="ob-q">Adın ne,<br>koşucu?</h1>
     <p class="ob-sub">Sana özel bir takvim hazırlayalım.</p>
     <input type="text" class="ob-name-input" id="name-input" placeholder="Adını yaz..." maxlength="30">
-    <button class="ob-btn" onclick="nextStep(1)" id="name-btn" disabled>Devam →</button>
+    <button class="ob-btn" onclick="nextStep(1)" id="name-btn">Devam →</button>
   </div>
 
   <!-- Step 2: Months -->
@@ -479,9 +477,7 @@
   <div id="snap-calendar"></div>
 
   <div class="snap-section-title">📍 HARİTA</div>
-  <div class="snap-map" id="snap-map">
-    <div style="font-size:13px;color:var(--muted);z-index:1;">Yarış konumları · 2026</div>
-  </div>
+  <div id="snap-map" style="height:380px;border-radius:16px;overflow:hidden;margin-top:20px;"></div>
 
   <div class="snap-action-bar">
     <button class="btn-primary"   onclick="copyShareLink()">🔗 Paylaş</button>
@@ -673,12 +669,18 @@ let state = {
 let obSelections = {months:[], location:null, dists:[], types:[]};
 
 // ─── ONBOARDING ───
-document.getElementById('name-input').addEventListener('input', function(){
-  document.getElementById('name-btn').disabled = this.value.trim().length < 2;
-  state.name = this.value.trim();
-});
-document.getElementById('name-input').addEventListener('keydown', function(e){
-  if (e.key==='Enter' && this.value.trim().length>=2) nextStep(1);
+document.addEventListener('DOMContentLoaded', function() {
+  const nameInput = document.getElementById('name-input');
+  const nameBtn   = document.getElementById('name-btn');
+  if (nameInput) {
+    nameInput.addEventListener('input', function(){
+      nameBtn.disabled = this.value.trim().length < 2;
+      state.name = this.value.trim();
+    });
+    nameInput.addEventListener('keydown', function(e){
+      if (e.key==='Enter' && this.value.trim().length>=2) nextStep(1);
+    });
+  }
 });
 
 function toggleOpt(el, group) {
@@ -717,6 +719,11 @@ function toggleOpt(el, group) {
 }
 
 function nextStep(from) {
+  // İlk adımda ismi kaydet
+  if (from === 1) {
+    state.name = document.getElementById('name-input').value.trim();
+    if (state.name.length < 2) return;
+  }
   document.getElementById(`step-${from}`).classList.remove('active');
   const next = from+1;
   document.getElementById(`step-${next}`).classList.add('active');
@@ -1021,24 +1028,111 @@ function showSnapshot() {
   });
   document.getElementById('snap-calendar').innerHTML = cal;
 
-  // Map dots
-  const map = document.getElementById('snap-map');
-  map.querySelectorAll('.map-dot').forEach(d=>d.remove());
-  selected.forEach((r,i)=>{
-    const angle = (i/selected.length)*Math.PI*2;
-    const cx = r.tr?58:38, cy=50, rad=r.tr?18:28;
-    const x  = Math.max(5,Math.min(93, cx+Math.cos(angle)*rad*(Math.random()*0.5+0.5)));
-    const y  = Math.max(10,Math.min(88,cy+Math.sin(angle)*rad*(Math.random()*0.5+0.5)));
-    const dot = document.createElement('div');
-    dot.className='map-dot';
-    dot.style.cssText=`left:${x}%;top:${y}%;animation-delay:${i*0.12}s;background:${r.tr?'var(--lime)':'var(--orange)'};box-shadow:0 0 12px ${r.tr?'var(--lime)':'var(--orange)'}`;
-    dot.title = r.name;
-    map.appendChild(dot);
+  // Real Leaflet map
+  buildMap(selected);
+}
+
+// ── KOORDİNATLAR ──
+const COORDS = {
+  1:[37.066,28.264],   2:[36.554,30.550],   3:[37.776,29.086],
+  4:[31.792,-7.093],   5:[36.897,30.713],   6:[40.976,29.064],
+  7:[39.933,32.860],   8:[37.034,27.431],   9:[45.327,14.442],
+  10:[38.834,-106.193],11:[40.431,29.715],  12:[36.963,28.645],
+  13:[37.000,35.321],  14:[37.119,28.403],  15:[36.606,-4.529],
+  16:[40.992,29.124],  17:[48.857,2.352],   18:[47.377,8.542],
+  19:[45.464,9.190],   20:[51.922,4.479],   21:[45.558,10.678],
+  22:[36.856,28.264],  23:[37.321,40.725],  24:[38.907,1.421],
+  25:[41.008,28.978],  26:[48.208,16.374],  27:[44.818,20.463],
+  28:[53.481,-2.243],  29:[42.360,-71.059], 30:[38.838,-120.896],
+  31:[38.013,30.849],  32:[36.648,29.122],  33:[35.361,138.727],
+  34:[44.068,5.270],   35:[51.219,4.403],   36:[32.761,-16.960],
+  37:[39.933,26.241],  38:[51.507,-0.128],  39:[53.575,9.992],
+  40:[38.717,-9.140],  41:[38.652,34.881],  42:[37.926,30.563],
+  43:[40.920,29.180],  44:[37.459,30.596],  45:[37.875,32.493],
+  46:[50.076,14.438],  47:[44.838,6.870],   48:[28.658,-17.975],
+  49:[36.589,30.532],  50:[36.800,34.642],  51:[38.323,26.301],
+  52:[55.676,12.568],  53:[41.008,28.978],  54:[-33.869,151.209],
+  55:[48.573,7.752],   56:[40.765,29.941],  57:[42.969,-2.654],
+  58:[38.355,30.539],  59:[38.094,28.000],  60:[40.913,38.390],
+  61:[38.680,26.756],  62:[41.287,36.330],  63:[41.123,20.802],
+  64:[36.856,28.264],  65:[47.800,13.045],  66:[45.749,21.209],
+  67:[40.992,29.124],  68:[46.948,7.447],   69:[38.643,34.829],
+  70:[59.329,18.069],  71:[40.370,28.720],  72:[40.195,25.910],
+  73:[40.764,39.718],  74:[37.370,29.180],  75:[41.008,28.978],
+  76:[36.870,34.590],  77:[42.506,1.522],   78:[40.694,30.433],
+  79:[38.643,34.829],  80:[39.594,27.024],  81:[47.421,10.985],
+  82:[39.191,-120.032],83:[40.195,26.410],  84:[41.060,27.516],
+  85:[46.536,12.136],  86:[45.924,6.869],   87:[40.085,22.358],
+  88:[38.907,-119.977],89:[37.950,31.080],  90:[37.067,36.177],
+  91:[42.709,0.988],   92:[47.233,-70.528], 93:[39.899,41.273],
+  94:[41.108,29.050],  95:[41.200,32.650],  96:[42.290,9.140],
+  97:[39.267,38.474],  98:[46.115,7.130],   99:[38.182,33.974],
+  100:[46.567,8.123],  101:[39.870,20.750], 102:[40.091,29.130],
+  103:[40.586,-111.657],104:[47.084,12.835],105:[47.045,10.859],
+  106:[37.866,32.485], 107:[57.150,24.850], 108:[47.516,14.550],
+  109:[46.021,7.749],  110:[39.777,30.521], 111:[40.730,31.570],
+  112:[43.000,-0.633], 113:[38.045,33.540], 114:[37.765,30.543],
+  115:[45.924,6.869],  116:[45.924,6.869],  117:[45.924,6.869],
+  118:[-33.869,151.209],119:[45.938,7.870], 120:[41.090,28.990],
+  121:[41.673,26.555], 122:[41.856,23.488], 123:[41.005,40.518],
+  124:[39.619,26.834], 125:[22.319,103.854],126:[38.731,35.479],
+  127:[55.676,12.568], 128:[37.044,28.324], 129:[40.850,29.120],
+  130:[52.520,13.405], 131:[42.202,1.874],  132:[40.003,31.850],
+  133:[40.183,29.067], 134:[37.034,27.431], 135:[50.933,6.950],
+  136:[40.399,27.800], 137:[39.933,32.860], 138:[40.992,29.124],
+  139:[40.154,26.404], 140:[41.883,-87.623],141:[43.703,3.086],
+  142:[38.643,34.829], 143:[52.368,4.904],  144:[36.199,29.643],
+  145:[56.880,14.806], 146:[36.787,31.990], 147:[41.008,28.978],
+  148:[40.713,-74.006],149:[37.000,35.321], 150:[37.034,27.431],
+  151:[37.984,23.728], 152:[37.100,27.920], 153:[-33.925,18.424],
+  154:[38.450,27.300], 155:[40.790,29.920],
+};
+
+let leafletMap = null;
+
+function buildMap(selected) {
+  // Leaflet yüklenmediyse bekle
+  if (typeof L === 'undefined') {
+    setTimeout(() => buildMap(selected), 200);
+    return;
+  }
+
+  if (leafletMap) { leafletMap.remove(); leafletMap = null; }
+
+  const withCoords = selected.filter(r => COORDS[r.id]);
+  if (withCoords.length === 0) return;
+
+  leafletMap = L.map('snap-map', { zoomControl: true, scrollWheelZoom: false });
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '© OpenStreetMap © CARTO', maxZoom: 18
+  }).addTo(leafletMap);
+
+  const markers = [];
+  withCoords.forEach(r => {
+    const [lat, lng] = COORDS[r.id];
+    const color = r.tr ? '#C8F135' : '#FF5C1A';
+    const icon = L.divIcon({
+      className: '',
+      html: `<div style="width:12px;height:12px;background:${color};border-radius:50%;border:2px solid rgba(255,255,255,0.5);box-shadow:0 0 8px ${color};cursor:pointer;"></div>`,
+      iconSize: [12,12], iconAnchor: [6,6]
+    });
+    const m = L.marker([lat,lng], {icon}).addTo(leafletMap).bindPopup(
+      `<div style="font-family:sans-serif;min-width:160px;">
+        <div style="font-weight:700;font-size:13px;margin-bottom:4px;">${r.type} ${r.name}</div>
+        <div style="font-size:11px;color:#666;">📅 ${r.date}</div>
+        <div style="font-size:11px;color:#666;">📍 ${r.loc}</div>
+        ${r.dist?`<div style="font-size:11px;color:#888;margin-top:3px;">${r.dist}</div>`:''}
+      </div>`, {maxWidth:220}
+    );
+    markers.push(m);
   });
-  map.querySelector('div').innerHTML=`<span style="color:var(--lime)">● Türkiye</span> &nbsp; <span style="color:var(--orange)">● Yurt Dışı</span> &nbsp;·&nbsp; ${selected.length} yarış`;
+
+  leafletMap.fitBounds(L.featureGroup(markers).getBounds().pad(0.2));
 }
 
 function backToDashboard() {
+  if (leafletMap) { leafletMap.remove(); leafletMap = null; }
   document.getElementById('snapshot').style.display='none';
   document.getElementById('dashboard').style.display='block';
 }
