@@ -803,7 +803,8 @@ let state = {
   name:'', prefMonths:[], prefLoc:'all', prefDists:[], prefTypes:[],
   selectedIds: new Set(),
   filterMonths:[], filterLoc:'all', filterDists:[], filterTypes:[],
-  filterSeries:'all', searchText:'', sortMode:'date'
+  filterSeries:'all', searchText:'', sortMode:'date',
+  savedSlug: null  // daha önce kaydedildiyse slug burada tutulur
 };
 let obSelections = {months:[], location:null, dists:[], types:[]};
 
@@ -1274,6 +1275,9 @@ function backToDashboard() {
   if (leafletMap) { leafletMap.remove(); leafletMap = null; }
   document.getElementById('snapshot').style.display='none';
   document.getElementById('dashboard').style.display='block';
+  const btn = document.getElementById('save-btn');
+  btn.textContent = '💾 Kaydet & Paylaş';
+  btn.disabled = false;
 }
 
 // ═══════════ SUPABASE ═══════════
@@ -1306,26 +1310,34 @@ async function saveCalendar() {
   btn.disabled = true;
 
   const name = state.name || 'Koşucu';
-  const baseSlug = slugify(name);
-  const slug = baseSlug + '-' + Math.random().toString(36).slice(2,6);
   const raceIds = [...state.selectedIds];
 
   try {
-    const data = await sbFetch('calendars', {
-      method: 'POST',
-      prefer: 'return=representation',
-      body: JSON.stringify({ name, slug, race_ids: raceIds })
-    });
-
-    if (data && data[0]) {
-      const url = window.location.origin + window.location.pathname + '?takvim=' + slug;
-      document.getElementById('share-link-input').value = url;
-      document.getElementById('share-link-box').style.display = 'block';
-      btn.textContent = '✅ Kaydedildi!';
-      showToast('Takvim kaydedildi! 🎉');
+    let slug = state.savedSlug;
+    if (slug) {
+      // Daha önce kaydedildi → güncelle
+      await sbFetch(`calendars?slug=eq.${slug}`, {
+        method: 'PATCH',
+        prefer: 'return=representation',
+        body: JSON.stringify({ race_ids: raceIds })
+      });
     } else {
-      throw new Error('Kayıt başarısız');
+      // İlk kayıt → yeni oluştur
+      slug = slugify(name) + '-' + Math.random().toString(36).slice(2,6);
+      const data = await sbFetch('calendars', {
+        method: 'POST',
+        prefer: 'return=representation',
+        body: JSON.stringify({ name, slug, race_ids: raceIds })
+      });
+      if (!data || !data[0]) throw new Error('Kayıt başarısız');
+      state.savedSlug = slug;
     }
+
+    const url = window.location.origin + window.location.pathname + '?takvim=' + slug;
+    document.getElementById('share-link-input').value = url;
+    document.getElementById('share-link-box').style.display = 'block';
+    btn.textContent = '✅ Kaydedildi!';
+    showToast('Takvim güncellendi! 🎉');
   } catch(e) {
     btn.textContent = '💾 Kaydet & Paylaş';
     btn.disabled = false;
@@ -1378,6 +1390,7 @@ async function loadSharedCalendar(slug) {
   const c = data[0];
   state.name = c.name;
   state.selectedIds = new Set(c.race_ids);
+  state.savedSlug = slug;
   document.getElementById('community').style.display = 'none';
   document.getElementById('snapshot').style.display = 'block';
   showSnapshot();
