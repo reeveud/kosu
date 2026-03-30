@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Durkay Koşucuları · Yarış Planlayıcı</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --lime: #C8F135;
+    --orange: #FF5C1A;
+    --navy: #0D1B2A;
+    --navy2: #152338;
+    --slate: #1E2F45;
+    --muted: #4A6080;
+    --light: #E8EFF7;
+    --white: #FFFFFF;
+    --trail: #2ECC71;
+    --road: #3498DB;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--navy); color: var(--white); min-height: 100vh; overflow-x: hidden; }
+
+  /* ─── ONBOARDING ─── */
+  #onboarding {
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 40px 20px; position: relative; overflow: hidden;
+  }
+  #onboarding::before {
+    content: ''; position: absolute; top: -200px; right: -200px;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(200,241,53,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  #onboarding::after {
+    content: ''; position: absolute; bottom: -150px; left: -150px;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(255,92,26,0.1) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .ob-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 15px; letter-spacing: 4px; color: var(--lime);
+    margin-bottom: 60px; opacity: 0.9; text-align: center; line-height: 1.4;
+  }
+
+  .ob-step {
+    display: none; flex-direction: column; align-items: center; text-align: center;
+    max-width: 580px; width: 100%; animation: fadeUp 0.4s ease forwards;
+  }
+  .ob-step.active { display: flex; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .ob-num { font-family: 'Bebas Neue', sans-serif; font-size: 13px; letter-spacing: 3px; color: var(--muted); margin-bottom: 16px; }
+  .ob-q   { font-family: 'Bebas Neue', sans-serif; font-size: clamp(32px,6vw,52px); line-height: 1.05; margin-bottom: 8px; }
+  .ob-sub { font-size: 14px; color: var(--muted); margin-bottom: 40px; font-weight: 300; }
+
+  .ob-options { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 40px; }
+  .ob-opt {
+    background: var(--slate); border: 1.5px solid rgba(255,255,255,0.1);
+    border-radius: 100px; padding: 10px 22px; font-size: 14px;
+    color: var(--light); cursor: pointer; transition: all 0.2s; font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .ob-opt:hover { border-color: var(--lime); color: var(--lime); }
+  .ob-opt.selected { background: var(--lime); color: var(--navy); border-color: var(--lime); font-weight: 700; }
+
+  .ob-name-input {
+    background: var(--slate); border: 1.5px solid rgba(255,255,255,0.15);
+    border-radius: 12px; padding: 16px 20px; font-size: 20px;
+    color: var(--white); font-family: 'DM Sans', sans-serif;
+    width: 100%; max-width: 360px; outline: none; margin-bottom: 32px;
+    text-align: center; transition: border-color 0.2s;
+  }
+  .ob-name-input:focus { border-color: var(--lime); }
+  .ob-name-input::placeholder { color: var(--muted); }
+
+  .ob-btn {
+    background: var(--lime); color: var(--navy); border: none; border-radius: 100px;
+    padding: 14px 40px; font-size: 15px; font-weight: 700;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; letter-spacing: 0.5px; transition: all 0.2s;
+  }
+  .ob-btn:hover { background: #d4f546; transform: translateY(-1px); }
+  .ob-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .ob-progress { display: flex; gap: 6px; margin-top: 48px; }
+  .ob-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); transition: all 0.3s; }
+  .ob-dot.active { background: var(--lime); width: 24px; border-radius: 3px; }
+
+  /* ─── DASHBOARD ─── */
+  #dashboard { display: none; min-height: 100vh; }
+
+  .db-header {
+    background: var(--navy2); border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding: 16px 32px; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .db-logo { font-family: 'Bebas Neue', sans-serif; font-size: 15px; letter-spacing: 3px; color: var(--lime); line-height: 1.3; }
+  .db-greeting { font-size: 13px; color: var(--muted); }
+  .db-greeting span { color: var(--white); font-weight: 600; }
+
+  .db-snapshot-btn {
+    background: var(--orange); color: var(--white); border: none; border-radius: 100px;
+    padding: 9px 22px; font-size: 13px; font-weight: 700;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s;
+  }
+  .db-snapshot-btn:hover { background: #ff6e35; transform: translateY(-1px); }
+
+  .db-layout { display: grid; grid-template-columns: 280px 1fr; min-height: calc(100vh - 61px); }
+
+  .db-sidebar {
+    background: var(--navy2); border-right: 1px solid rgba(255,255,255,0.06);
+    padding: 24px 20px; overflow-y: auto;
+    position: sticky; top: 61px; height: calc(100vh - 61px);
+  }
+
+  .filter-title {
+    font-size: 10px; font-weight: 700; letter-spacing: 2px; color: var(--muted);
+    text-transform: uppercase; margin-bottom: 10px; margin-top: 22px;
+  }
+  .filter-title:first-child { margin-top: 0; }
+
+  .filter-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
+
+  .fp {
+    background: var(--slate); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px; padding: 5px 12px; font-size: 12px;
+    color: var(--light); cursor: pointer; transition: all 0.15s; font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .fp:hover { border-color: var(--lime); color: var(--lime); }
+  .fp.active { background: var(--lime); color: var(--navy); border-color: var(--lime); font-weight: 700; }
+
+  .filter-search {
+    background: var(--slate); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px; padding: 9px 14px; font-size: 13px; color: var(--white);
+    font-family: 'DM Sans', sans-serif; width: 100%; outline: none;
+    transition: border-color 0.2s; margin-bottom: 16px;
+  }
+  .filter-search:focus { border-color: var(--lime); }
+  .filter-search::placeholder { color: var(--muted); }
+
+  .selected-count {
+    background: var(--slate); border-radius: 10px; padding: 12px 14px;
+    font-size: 12px; color: var(--muted); margin-top: 22px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .selected-count strong { color: var(--lime); font-size: 20px; }
+
+  .clear-btn {
+    background: none; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px;
+    color: var(--muted); font-size: 11px; padding: 4px 10px; cursor: pointer;
+    transition: all 0.15s; font-family: 'DM Sans', sans-serif;
+  }
+  .clear-btn:hover { border-color: var(--orange); color: var(--orange); }
+
+  /* Sort toggle */
+  .sort-toggle {
+    display: flex; gap: 4px; margin-bottom: 4px;
+  }
+  .sort-btn {
+    background: var(--slate); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px; padding: 5px 10px; font-size: 11px; color: var(--muted);
+    cursor: pointer; transition: all 0.15s; font-family: 'DM Sans', sans-serif; flex: 1; text-align: center;
+  }
+  .sort-btn:hover { border-color: var(--lime); color: var(--lime); }
+  .sort-btn.active { background: var(--lime); color: var(--navy); border-color: var(--lime); font-weight: 700; }
+
+  /* Main */
+  .db-main { padding: 28px 32px; overflow-y: auto; }
+
+  .db-results-header {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;
+  }
+  .db-results-title { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 1px; }
+  .db-results-count { font-size: 13px; color: var(--muted); }
+
+  .month-group { margin-bottom: 32px; }
+  .month-label {
+    font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 2px;
+    color: var(--lime); margin-bottom: 12px; padding-bottom: 8px;
+    border-bottom: 1px solid rgba(200,241,53,0.2);
+  }
+
+  /* Distance group label */
+  .dist-group-label {
+    font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 2px;
+    color: var(--orange); margin-bottom: 12px; padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255,92,26,0.2); margin-top: 28px;
+  }
+  .dist-group-label:first-child { margin-top: 0; }
+
+  .race-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+
+  .race-card {
+    background: var(--slate); border: 1.5px solid rgba(255,255,255,0.06);
+    border-radius: 14px; padding: 16px; cursor: pointer; transition: all 0.2s;
+    position: relative; overflow: hidden;
+  }
+  .race-card::before {
+    content: ''; position: absolute; top: 0; left: 0;
+    width: 3px; height: 100%; background: var(--muted); transition: all 0.2s;
+  }
+  .race-card:hover { border-color: rgba(200,241,53,0.3); transform: translateY(-2px); }
+  .race-card:hover::before { background: var(--lime); }
+  .race-card.selected { border-color: var(--lime); background: rgba(200,241,53,0.05); }
+  .race-card.selected::before { background: var(--lime); }
+
+  .rc-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; gap: 8px; }
+  .rc-name { font-size: 14px; font-weight: 600; line-height: 1.3; flex: 1; }
+  .rc-check {
+    width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.2);
+    border-radius: 50%; flex-shrink: 0; display: flex; align-items: center;
+    justify-content: center; transition: all 0.15s; font-size: 10px;
+  }
+  .race-card.selected .rc-check { background: var(--lime); border-color: var(--lime); color: var(--navy); }
+  .rc-date { font-size: 12px; color: var(--lime); font-weight: 600; margin-bottom: 4px; }
+  .rc-location { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  .rc-distances { font-size: 11px; color: rgba(255,255,255,0.5); line-height: 1.4; }
+  .rc-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 8px; }
+  .rc-tag { font-size: 9px; font-weight: 700; letter-spacing: 0.5px; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; }
+  .tag-tr   { background: rgba(255,92,26,0.2);  color: var(--orange); }
+  .tag-utmb { background: rgba(155,89,182,0.2); color: #BB8FDC; }
+  .tag-itra { background: rgba(46,204,113,0.2); color: var(--trail); }
+  .tag-wtm  { background: rgba(52,152,219,0.2); color: #7FB3D3; }
+  .tag-new  { background: rgba(200,241,53,0.2); color: var(--lime); }
+
+  /* ─── SNAPSHOT ─── */
+  #snapshot { display: none; min-height: 100vh; padding: 40px 32px; }
+
+  .snap-back {
+    background: none; border: 1px solid rgba(255,255,255,0.15); color: var(--muted);
+    border-radius: 100px; padding: 8px 18px; font-size: 12px; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; transition: all 0.2s; margin-bottom: 32px; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .snap-back:hover { border-color: var(--lime); color: var(--lime); }
+
+  .snap-eyebrow { font-size: 11px; letter-spacing: 3px; color: var(--lime); text-transform: uppercase; font-weight: 700; margin-bottom: 8px; }
+  .snap-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(36px,5vw,64px); line-height: 1; margin-bottom: 8px; }
+  .snap-subtitle { font-size: 14px; color: var(--muted); font-weight: 300; }
+  .snap-subtitle strong { color: var(--white); }
+
+  .snap-stats { display: flex; gap: 16px; margin-top: 24px; flex-wrap: wrap; }
+  .snap-stat { background: var(--slate); border-radius: 12px; padding: 16px 20px; min-width: 90px; }
+  .snap-stat-num { font-family: 'Bebas Neue', sans-serif; font-size: 36px; color: var(--lime); line-height: 1; }
+  .snap-stat-label { font-size: 10px; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: 1px; }
+
+  .snap-section-title { font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: 2px; margin-bottom: 20px; margin-top: 48px; }
+
+  .snap-month-row { display: grid; grid-template-columns: 100px 1fr; gap: 16px; align-items: start; margin-bottom: 20px; }
+  .snap-month-name { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--lime); line-height: 1; padding-top: 4px; opacity: 0.8; }
+  .snap-month-races { display: flex; flex-direction: column; gap: 8px; }
+
+  .snap-race-row {
+    background: var(--slate); border-radius: 12px; padding: 14px 18px;
+    display: grid; grid-template-columns: 90px 1fr auto; gap: 12px; align-items: center;
+    border-left: 3px solid var(--lime);
+  }
+  .srr-date { font-size: 12px; font-weight: 700; color: var(--lime); }
+  .srr-name { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+  .srr-loc  { font-size: 12px; color: var(--muted); }
+  .srr-dist { font-size: 11px; color: rgba(255,255,255,0.4); text-align: right; max-width: 120px; }
+
+  .snap-map {
+    background: var(--slate); border-radius: 16px; height: 280px;
+    display: flex; align-items: center; justify-content: center; flex-direction: column;
+    gap: 12px; color: var(--muted); border: 1px dashed rgba(255,255,255,0.1);
+    margin-top: 20px; position: relative; overflow: hidden;
+  }
+  .map-dot {
+    position: absolute; width: 10px; height: 10px; background: var(--lime);
+    border-radius: 50%; box-shadow: 0 0 12px var(--lime); animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { transform: scale(1); opacity: 1; }
+    50%      { transform: scale(1.6); opacity: 0.5; }
+  }
+
+  .snap-action-bar {
+    display: flex; gap: 12px; margin-top: 48px; padding-top: 32px;
+    border-top: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;
+  }
+  .btn-primary {
+    background: var(--lime); color: var(--navy); border: none; border-radius: 100px;
+    padding: 13px 32px; font-size: 14px; font-weight: 700;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-primary:hover { background: #d4f546; transform: translateY(-1px); }
+  .btn-secondary {
+    background: none; color: var(--white); border: 1.5px solid rgba(255,255,255,0.2);
+    border-radius: 100px; padding: 13px 32px; font-size: 14px; font-weight: 600;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-secondary:hover { border-color: var(--lime); color: var(--lime); }
+
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; background: var(--lime); color: var(--navy);
+    border-radius: 12px; padding: 12px 20px; font-size: 13px; font-weight: 700; z-index: 9999;
+    transform: translateY(80px); opacity: 0; transition: all 0.3s;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty-state-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-state h3 { color: var(--white); font-size: 18px; margin-bottom: 8px; }
+
+  @media (max-width: 768px) {
+    .db-layout { grid-template-columns: 1fr; }
+    .db-sidebar { position: static; height: auto; }
+    .snap-month-row { grid-template-columns: 70px 1fr; }
+    .snap-race-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ ONBOARDING ═══════════════ -->
+<div id="onboarding">
+  <div class="ob-logo">DURKAY KOŞUCULARI<br>YARIŞ PLANLAYICI · 2026</div>
+
+  <!-- Step 1: Name -->
+  <div class="ob-step active" id="step-1">
+    <div class="ob-num">01 / 05</div>
+    <h1 class="ob-q">Adın ne,<br>koşucu?</h1>
+    <p class="ob-sub">Sana özel bir takvim hazırlayalım.</p>
+    <input type="text" class="ob-name-input" id="name-input" placeholder="Adını yaz..." maxlength="30">
+    <button class="ob-btn" onclick="nextStep(1)" id="name-btn" disabled>Devam →</button>
+  </div>
+
+  <!-- Step 2: Months -->
+  <div class="ob-step" id="step-2">
+    <div class="ob-num">02 / 05</div>
+    <h1 class="ob-q">Hangi aylarda<br>koşmak istiyorsun?</h1>
+    <p class="ob-sub">Birden fazla seçebilirsin.</p>
+    <div class="ob-options" id="months-opts">
+      <div class="ob-opt" data-val="Nisan"   onclick="toggleOpt(this,'months')">Nisan</div>
+      <div class="ob-opt" data-val="Mayıs"   onclick="toggleOpt(this,'months')">Mayıs</div>
+      <div class="ob-opt" data-val="Haziran" onclick="toggleOpt(this,'months')">Haziran</div>
+      <div class="ob-opt" data-val="Temmuz"  onclick="toggleOpt(this,'months')">Temmuz</div>
+      <div class="ob-opt" data-val="Ağustos" onclick="toggleOpt(this,'months')">Ağustos</div>
+      <div class="ob-opt" data-val="Eylül"   onclick="toggleOpt(this,'months')">Eylül</div>
+      <div class="ob-opt" data-val="Ekim"    onclick="toggleOpt(this,'months')">Ekim</div>
+      <div class="ob-opt" data-val="Kasım"   onclick="toggleOpt(this,'months')">Kasım</div>
+    </div>
+    <button class="ob-btn" onclick="nextStep(2)" id="months-btn" disabled>Devam →</button>
+  </div>
+
+  <!-- Step 3: Location -->
+  <div class="ob-step" id="step-3">
+    <div class="ob-num">03 / 05</div>
+    <h1 class="ob-q">Nerede<br>koşmak istersin?</h1>
+    <p class="ob-sub">Yurt içi, yurt dışı, ya da her ikisi?</p>
+    <div class="ob-options" id="location-opts">
+      <div class="ob-opt" data-val="tr"    onclick="toggleOpt(this,'location')">🇹🇷 Türkiye'de</div>
+      <div class="ob-opt" data-val="world" onclick="toggleOpt(this,'location')">🌍 Yurt Dışında</div>
+      <div class="ob-opt" data-val="all"   onclick="toggleOpt(this,'location')">Her İkisi</div>
+    </div>
+    <button class="ob-btn" onclick="nextStep(3)" id="location-btn" disabled>Devam →</button>
+  </div>
+
+  <!-- Step 4: Distance -->
+  <div class="ob-step" id="step-4">
+    <div class="ob-num">04 / 05</div>
+    <h1 class="ob-q">Ne kadar<br>koşmak istersin?</h1>
+    <p class="ob-sub">Hedeflediğin mesafe aralığını seç. Birden fazla olabilir.</p>
+    <div class="ob-options" id="dist-opts">
+      <div class="ob-opt" data-min="0"   data-max="10"  onclick="toggleOpt(this,'dists')">🏃 10K ve altı</div>
+      <div class="ob-opt" data-min="10"  data-max="21"  onclick="toggleOpt(this,'dists')">🏃 10–21K (Yarı maraton)</div>
+      <div class="ob-opt" data-min="21"  data-max="42"  onclick="toggleOpt(this,'dists')">🏅 21–42K (Maraton)</div>
+      <div class="ob-opt" data-min="42"  data-max="80"  onclick="toggleOpt(this,'dists')">🌳 42–80K (Trail orta)</div>
+      <div class="ob-opt" data-min="80"  data-max="160" onclick="toggleOpt(this,'dists')">⚡ 80–160K (Ultra)</div>
+      <div class="ob-opt" data-min="160" data-max="999" onclick="toggleOpt(this,'dists')">🔥 160K+ (Extreme)</div>
+      <div class="ob-opt" data-min="0"   data-max="999" onclick="toggleOpt(this,'dists')">Hepsi ilgimi çeker</div>
+    </div>
+    <button class="ob-btn" onclick="nextStep(4)" id="dist-btn" disabled>Devam →</button>
+  </div>
+
+  <!-- Step 5: Race type -->
+  <div class="ob-step" id="step-5">
+    <div class="ob-num">05 / 05</div>
+    <h1 class="ob-q">Hangi tür<br>yarışlar ilgini çeker?</h1>
+    <p class="ob-sub">Birden fazla seçebilirsin.</p>
+    <div class="ob-options" id="types-opts">
+      <div class="ob-opt" data-val="🌳" onclick="toggleOpt(this,'types')">🌳 Patika / Trail</div>
+      <div class="ob-opt" data-val="🛣" onclick="toggleOpt(this,'types')">🛣 Yol Koşusu</div>
+      <div class="ob-opt" data-val="🌋" onclick="toggleOpt(this,'types')">🌋 Dağ / Sky</div>
+      <div class="ob-opt" data-val="🎢" onclick="toggleOpt(this,'types')">🎢 Skyrace</div>
+      <div class="ob-opt" data-val="🏊" onclick="toggleOpt(this,'types')">🏊 Açık Su</div>
+      <div class="ob-opt" data-val="🚵" onclick="toggleOpt(this,'types')">🚵 Bisiklet</div>
+      <div class="ob-opt" data-val="🧭" onclick="toggleOpt(this,'types')">🧭 Oryantiring</div>
+    </div>
+    <button class="ob-btn" onclick="launchDashboard()" id="types-btn" disabled>Takvimimi Oluştur 🚀</button>
+  </div>
+
+  <div class="ob-progress">
+    <div class="ob-dot active" id="dot-1"></div>
+    <div class="ob-dot" id="dot-2"></div>
+    <div class="ob-dot" id="dot-3"></div>
+    <div class="ob-dot" id="dot-4"></div>
+    <div class="ob-dot" id="dot-5"></div>
+  </div>
+</div>
+
+<!-- ═══════════════ DASHBOARD ═══════════════ -->
+<div id="dashboard">
+  <div class="db-header">
+    <div class="db-logo">DURKAY<br>KOŞUCULARI</div>
+    <div class="db-greeting">Merhaba, <span id="db-name">Koşucu</span> 👋</div>
+    <button class="db-snapshot-btn" onclick="showSnapshot()">
+      📋 Takvimimi Gör (<span id="sel-count-header">0</span>)
+    </button>
+  </div>
+  <div class="db-layout">
+    <div class="db-sidebar">
+      <input type="text" class="filter-search" id="search-input" placeholder="Yarış ara..." oninput="applyFilters()">
+
+      <div class="filter-title">Sırala</div>
+      <div class="sort-toggle">
+        <div class="sort-btn active" id="sort-date-btn" onclick="setSort('date')">📅 Tarihe göre</div>
+        <div class="sort-btn" id="sort-dist-btn" onclick="setSort('dist')">📏 Mesafeye göre</div>
+      </div>
+
+      <div class="filter-title">Mesafe</div>
+      <div class="filter-pills" id="sidebar-dists"></div>
+
+      <div class="filter-title">Ay</div>
+      <div class="filter-pills" id="sidebar-months"></div>
+
+      <div class="filter-title">Ülke</div>
+      <div class="filter-pills">
+        <div class="fp active" data-group="loc" data-val="all" onclick="setFilter(this,'loc')">Tümü</div>
+        <div class="fp" data-group="loc" data-val="tr"    onclick="setFilter(this,'loc')">🇹🇷 Türkiye</div>
+        <div class="fp" data-group="loc" data-val="world" onclick="setFilter(this,'loc')">🌍 Yurt Dışı</div>
+      </div>
+
+      <div class="filter-title">Yarış Tipi</div>
+      <div class="filter-pills" id="sidebar-types"></div>
+
+      <div class="filter-title">Seri</div>
+      <div class="filter-pills">
+        <div class="fp active" data-group="series" data-val="all"  onclick="setFilter(this,'series')">Tümü</div>
+        <div class="fp"        data-group="series" data-val="UTMB" onclick="setFilter(this,'series')">UTMB</div>
+        <div class="fp"        data-group="series" data-val="ITRA" onclick="setFilter(this,'series')">ITRA</div>
+        <div class="fp"        data-group="series" data-val="WTM"  onclick="setFilter(this,'series')">WTM</div>
+        <div class="fp"        data-group="series" data-val="YENİ" onclick="setFilter(this,'series')">🎈 Yeni</div>
+      </div>
+
+      <div class="selected-count">
+        <div><strong id="sel-count">0</strong><br><span>yarış seçildi</span></div>
+        <button class="clear-btn" onclick="clearSelection()">Temizle</button>
+      </div>
+    </div>
+
+    <div class="db-main" id="db-main-content"></div>
+  </div>
+</div>
+
+<!-- ═══════════════ SNAPSHOT ═══════════════ -->
+<div id="snapshot">
+  <button class="snap-back" onclick="backToDashboard()">← Geri</button>
+  <div class="snap-eyebrow">Durkay Koşucuları · Kişisel Yarış Takvimi 2026</div>
+  <h1 class="snap-title" id="snap-title">TAKVİMİN</h1>
+  <p class="snap-subtitle">Seçtiğin yarışlar · <strong>2026</strong></p>
+  <div class="snap-stats">
+    <div class="snap-stat"><div class="snap-stat-num" id="snap-total">0</div><div class="snap-stat-label">Toplam Yarış</div></div>
+    <div class="snap-stat"><div class="snap-stat-num" id="snap-months-count">0</div><div class="snap-stat-label">Aktif Ay</div></div>
+    <div class="snap-stat"><div class="snap-stat-num" id="snap-tr-count">0</div><div class="snap-stat-label">Türkiye'de</div></div>
+    <div class="snap-stat"><div class="snap-stat-num" id="snap-abroad-count">0</div><div class="snap-stat-label">Yurt Dışı</div></div>
+  </div>
+
+  <div class="snap-section-title">📅 TAKVİM</div>
+  <div id="snap-calendar"></div>
+
+  <div class="snap-section-title">📍 HARİTA</div>
+  <div class="snap-map" id="snap-map">
+    <div style="font-size:13px;color:var(--muted);z-index:1;">Yarış konumları · 2026</div>
+  </div>
+
+  <div class="snap-action-bar">
+    <button class="btn-primary"   onclick="copyShareLink()">🔗 Paylaş</button>
+    <button class="btn-secondary" onclick="printSnapshot()">🖨 İndir / Yazdır</button>
+    <button class="btn-secondary" onclick="backToDashboard()">✏️ Düzenle</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════ RACE DATABASE ═══════════
+// maxKm: max distance in km for sorting/filtering (0 = non-running event)
+const RACES = [
+  {id:1,  name:"Boostcamp",                          date:"01-05.04.2026",month:"Nisan",  loc:"Muğla, Marmaris",          dist:"5 gün etaplı kamp",                       type:"🚵",tr:true, notes:"",         maxKm:0},
+  {id:2,  name:"Motion.Camp Trail Edition",           date:"01-05.04.2026",month:"Nisan",  loc:"Antalya, Kemer",            dist:"5 gün etaplı kamp",                       type:"🌳",tr:true, notes:"",         maxKm:0},
+  {id:3,  name:"Türkiye Oryantiring Şampiyonası",     date:"03-05.04.2026",month:"Nisan",  loc:"Denizli",                   dist:"Uzun Mesafe, Orta Mesafe, Sürat",         type:"🧭",tr:true, notes:"",         maxKm:10},
+  {id:4,  name:"Marathon des Sables",                 date:"03-14.04.2026",month:"Nisan",  loc:"Fas, Sahara Çölü",          dist:"250K – 6 gün etaplı",                     type:"🌳",tr:false,notes:"",         maxKm:250},
+  {id:5,  name:"Runtalya",                            date:"05.04.2026",   month:"Nisan",  loc:"Antalya",                   dist:"5K, 10K, 21K, 42K",                       type:"🛣",tr:true, notes:"",         maxKm:42},
+  {id:6,  name:"Bosphorun Quarter Marathon",          date:"05.04.2026",   month:"Nisan",  loc:"İstanbul, Caddebostan",     dist:"10.5K",                                   type:"🛣",tr:true, notes:"YENİ",     maxKm:11},
+  {id:7,  name:"Anadolu Ajansı 1920 Koşusu",         date:"05.04.2026",   month:"Nisan",  loc:"Ankara",                    dist:"10K",                                     type:"🛣",tr:true, notes:"YENİ",     maxKm:10},
+  {id:8,  name:"Bodrum Gran Fondo",                   date:"05.04.2026",   month:"Nisan",  loc:"Bodrum",                    dist:"",                                        type:"🚵",tr:true, notes:"",         maxKm:0},
+  {id:9,  name:"Istria 100 by UTMB",                 date:"09-12.04.2026",month:"Nisan",  loc:"Hırvatistan",               dist:"21K, 42K, 69K, 110K, 100M",              type:"🌳",tr:false,notes:"UTMB",     maxKm:161},
+  {id:10, name:"Desert Rats by UTMB",                date:"09-12.04.2026",month:"Nisan",  loc:"ABD, Colorado",             dist:"9K, 21K, 48K, 100K",                     type:"🌳",tr:false,notes:"UTMB",     maxKm:100},
+  {id:11, name:"İznik Ultra Maratonu",               date:"10-12.04.2026",month:"Nisan",  loc:"Bursa, İznik",              dist:"5K, 14K, 25K, 50K, 75K, 90K, 160K",     type:"🌳",tr:true, notes:"ITRA",     maxKm:160},
+  {id:12, name:"Sandras Adventure Trail",             date:"10-12.04.2026",month:"Nisan",  loc:"Muğla, Köyceğiz",           dist:"Trail 25K, 50K; MB 50K, 100K",           type:"🌳",tr:true, notes:"YENİ ITRA",maxKm:100},
+  {id:13, name:"Adana Backyard Ultra",                date:"11.04.2026",   month:"Nisan",  loc:"Adana",                     dist:"6.706K x katları",                        type:"🌳",tr:true, notes:"",         maxKm:200},
+  {id:14, name:"Köyümdeki Yarış",                    date:"11.04.2026",   month:"Nisan",  loc:"Muğla, Ula",                dist:"6K, 15K, 30K",                            type:"🌳",tr:true, notes:"YENİ",     maxKm:30},
+  {id:15, name:"Calamorro Skyrace",                   date:"11.04.2026",   month:"Nisan",  loc:"İspanya",                   dist:"27K",                                     type:"🎢",tr:false,notes:"",         maxKm:27},
+  {id:16, name:"Ataşehir Ata Koşusu",               date:"12.04.2026",   month:"Nisan",  loc:"İstanbul, Ataşehir",        dist:"5K, 10K",                                 type:"🛣",tr:true, notes:"YENİ",     maxKm:10},
+  {id:17, name:"Paris Marathon",                      date:"12.04.2026",   month:"Nisan",  loc:"Fransa",                    dist:"42K",                                     type:"🛣",tr:false,notes:"",         maxKm:42},
+  {id:18, name:"Zurich Marathon",                     date:"12.04.2026",   month:"Nisan",  loc:"İsviçre",                   dist:"10K, 21K, 42K",                           type:"🛣",tr:false,notes:"",         maxKm:42},
+  {id:19, name:"Milano Marathon",                     date:"12.04.2026",   month:"Nisan",  loc:"İtalya",                    dist:"42K, Relay",                              type:"🛣",tr:false,notes:"",         maxKm:42},
+  {id:20, name:"Rotterdam Marathon",                  date:"12.04.2026",   month:"Nisan",  loc:"Hollanda",                  dist:"42K",                                     type:"🛣",tr:false,notes:"",         maxKm:42},
+  {id:21, name:"Lake Garda Marathon",                 date:"12.04.2026",   month:"Nisan",  loc:"İtalya",                    dist:"21K, 42K",                                type:"🛣",tr:false,notes:"",         maxKm:42},
+  {id:22, name:"Marmaris Ultra Trail",                date:"18-19.04.2026",month:"Nisan",  loc:"Muğla, Marmaris",           dist:"5K, 16K, 30K, 48K, 77K, 106K",           type:"🌳",tr:true, notes:"ITRA UTMB",maxKm:106},
+  {id:23, name:"Intersport Mezopotamya Trail Run",    date:"18.04.2026",   month:"Nisan",  loc:"Mardin",                    dist:"5K, 15K, 40K, 90K",                      type:"🌳",tr:true, notes:"ITRA UTMB",maxKm:90},
+  {id:24, name:"Ibiza Marathon",                      date:"18.04.2026",   month:"Nisan",  loc:"İspanya",                   dist:"12K, 22K, 42K",                           type:"🛣",tr:false,notes:"",         maxKm:42},
+  {id:25, name:"İstanbul Yarı Maratonu",             date:"19.04.2026",   month:"Nisan",  loc:"İstanbul",                  dist:"10K, 21K",                                type:"🛣",tr:true, notes:"",         maxKm:21},
+  {id:26, name:"Vienna City Marathon",                date:"19.04.2026",   month:"Nisan",  loc:"Avusturya",                 dist:"5K, 10K, 21K, 42K",                       type:"🛣",tr:false,notes:"",         maxKm:42},
+  {id:27, name:"Belgrade Marathon",                   date:"19.04.2026",   month:"Nisan",  loc:"Sırbistan",                 dist:"42K",                                     type:"🛣",tr:false,notes:"",         maxKm:42},
+  {id:28, name:"Manchester Marathon",                 date:"19.04.2026",   month:"Nisan",  loc:"İngiltere",                 dist:"42K",                                     type:"🛣",tr:false,notes:"",         maxKm:42},
+  {id:29, name:"Boston Marathon",                     date:"20.04.2026",   month:"Nisan",  loc:"ABD",                       dist:"42K",                                     type:"🛣",tr:false,notes:"",         maxKm:42},
+  {id:30, name:"The Canyons Endurance Runs by UTMB",  date:"23-25.04.2026",month:"Nisan",  loc:"ABD, California",           dist:"25K, 50K, 100K, 100M",                   type:"🌳",tr:false,notes:"UTMB",     maxKm:161},
+  {id:31, name:"Eğirdir Ultra Trail",                date:"24-25.04.2026",month:"Nisan",  loc:"Isparta",                   dist:"12K, 25K, 40K, 60K",                      type:"🌳",tr:true, notes:"ITRA",     maxKm:60},
+  {id:32, name:"Babadağ Ultra Trail",                date:"24-26.04.2026",month:"Nisan",  loc:"Muğla, Fethiye",            dist:"5K, 14K, 15K, 26K, 30K, 56K",            type:"🌳",tr:true, notes:"ITRA",     maxKm:56},
+  {id:33, name:"Mt. Fuji 100",                        date:"24-26.04.2026",month:"Nisan",  loc:"Japonya",                   dist:"12K, 40K, 70K, 100M",                    type:"🌳",tr:false,notes:"WTM",      maxKm:161},
+  {id:34, name:"Grand Raid Ventoux by UTMB",          date:"24-26.04.2026",month:"Nisan",  loc:"Fransa",                    dist:"20K, 50K, 100K, 100M",                   type:"🌳",tr:false,notes:"UTMB",     maxKm:161},
+  {id:35, name:"Legends Backyard Ultra",              date:"25.04.2026",   month:"Nisan",  loc:"Belçika",                   dist:"6.706K x katları",                        type:"🌳",tr:false,notes:"",         maxKm:200},
+  {id:36, name:"MIUT Madeira Island Ultra Trail",     date:"25-26.04.2026",month:"Nisan",  loc:"Portekiz",                  dist:"17K, 40K, 56K, 80K, 110K",               type:"🌳",tr:false,notes:"WTM",      maxKm:110},
+  {id:37, name:"Troya Maratonu",                      date:"26.04.2026",   month:"Nisan",  loc:"Çanakkale",                 dist:"6K, 10K, 21K, 42K",                       type:"🛣",tr:true, notes:"",         maxKm:42},
+  {id:38, name:"London Marathon",                     date:"26.04.2026",   month:"Nisan",  loc:"İngiltere",                 dist:"42K",                                     type:"🛣",tr:false,notes:"",         maxKm:42},
+  {id:39, name:"Hamburg Marathon",                    date:"26.04.2026",   month:"Nisan",  loc:"Almanya",                   dist:"42K, 21K",                                type:"🛣",tr:false,notes:"",         maxKm:42},
+  {id:40, name:"Oh Meu Deus by UTMB",                date:"01-03.05.2026",month:"Mayıs",  loc:"Portekiz",                  dist:"20K, 50K, 100K, 100M",                   type:"🌳",tr:false,notes:"UTMB",     maxKm:161},
+  {id:41, name:"Gomeda Ultra Trail",                  date:"02.05.2026",   month:"Mayıs",  loc:"Nevşehir, Mustafapaşa",    dist:"5K, 10K, 19K, 30K, 47K",                 type:"🌳",tr:true, notes:"",         maxKm:47},
+  {id:42, name:"Sagalassos Sky Ultra",                date:"02-03.05.2026",month:"Mayıs",  loc:"Isparta, Burdur",           dist:"2K, 5K, 17K, 26K, 42K",                  type:"🌋",tr:true, notes:"ITRA UTMB",maxKm:42},
+  {id:43, name:"Aydos Ultra Trail Run",               date:"03.05.2026",   month:"Mayıs",  loc:"İstanbul, Kartal",          dist:"5K, 10K, 20K, 44K",                       type:"🌳",tr:true, notes:"ITRA",     maxKm:44},
+  {id:44, name:"Kremna Sky Run",                      date:"03.05.2026",   month:"Mayıs",  loc:"Burdur, Bucak",             dist:"5K, 10K, 20K",                            type:"🌋",tr:true, notes:"YENİ",     maxKm:20},
+  {id:45, name:"Konya Yarı Maratonu",                date:"03.05.2026",   month:"Mayıs",  loc:"Konya",                     dist:"5K, 10K, 21K",                            type:"🛣",tr:true, notes:"",         maxKm:21},
+  {id:46, name:"Prague Marathon",                     date:"03.05.2026",   month:"Mayıs",  loc:"Çekya",                     dist:"42K",                                     type:"🛣",tr:false,notes:"",         maxKm:42},
+  {id:47, name:"SkyRace des Matheysins",              date:"03.05.2026",   month:"Mayıs",  loc:"Fransa",                    dist:"18K, 25K, 43K",                           type:"🎢",tr:false,notes:"",         maxKm:43},
+  {id:48, name:"Transvulcania",                       date:"07-09.05.2026",month:"Mayıs",  loc:"İspanya, La Palma",         dist:"7VK, 28K, 48K, 73K",                     type:"🌳",tr:false,notes:"",         maxKm:73},
+  {id:49, name:"Tahtalı Run to Sky",                 date:"09.05.2026",   month:"Mayıs",  loc:"Antalya, Kemer",            dist:"11K, 27K, 43K",                           type:"🌋",tr:true, notes:"ITRA UTMB",maxKm:43},
+  {id:50, name:"Kilikya Ultra Maratonu",              date:"09.05.2026",   month:"Mayıs",  loc:"Mersin",                    dist:"10K, 33K, 53K",                           type:"🌳",tr:true, notes:"",         maxKm:53},
+  {id:51, name:"Çeşme Yarı Maratonu",               date:"09-10.05.2026",month:"Mayıs",  loc:"İzmir, Çeşme",             dist:"5K, 10K, 21K",                            type:"🛣",tr:true, notes:"",         maxKm:21},
+  {id:52, name:"Copenhagen Marathon",                 date:"10.05.2026",   month:"Mayıs",  loc:"Danimarka",                 dist:"42K",                                     type:"🛣",tr:false,notes:"",         maxKm:42},
+  {id:53, name:"Wings for Life World Run",            date:"10.05.2026",   month:"Mayıs",  loc:"İstanbul, İzmir ve diğerleri",dist:"App Run",                              type:"🛣",tr:true, notes:"",         maxKm:21},
+  {id:54, name:"Ultra-Trail Australia by UTMB",       date:"14-17.05.2026",month:"Mayıs",  loc:"Avustralya",                dist:"13K, 22K, 51K, 101K, 100M",              type:"🌳",tr:false,notes:"UTMB",     maxKm:161},
+  {id:55, name:"Trail Alsace Grand Est by UTMB",      date:"14-17.05.2026",month:"Mayıs",  loc:"Fransa",                    dist:"18K, 29K, 47K, 109K, 100M",              type:"🌳",tr:false,notes:"UTMB",     maxKm:161},
+  {id:56, name:"Gebze Ultra Trail",                   date:"15-16.05.2026",month:"Mayıs",  loc:"Kocaeli",                   dist:"10K, 27K, 51K",                           type:"🌳",tr:true, notes:"",         maxKm:51},
+  {id:57, name:"Salomon GTS – Zegama Aizkorri",       date:"15-17.05.2026",month:"Mayıs",  loc:"İspanya",                   dist:"VK, 42K",                                 type:"🎢",tr:false,notes:"",         maxKm:42},
+  {id:58, name:"Frig Ultra Maratonu",                 date:"16-17.05.2026",month:"Mayıs",  loc:"Afyon",                     dist:"1.5K VK, 6K, 12K, 22K, 38K, 54K",       type:"🌳",tr:true, notes:"ITRA UTMB",maxKm:54},
+  {id:59, name:"Efeler Yolu Ultra Trail",             date:"16-17.05.2026",month:"Mayıs",  loc:"İzmir, Birgi",              dist:"5K, 15K, 30K, 50K, 80K, 100K",           type:"🌳",tr:true, notes:"ITRA",     maxKm:100},
+  {id:60, name:"Giresun Yarı Maratonu",              date:"17.05.2026",   month:"Mayıs",  loc:"Giresun",                   dist:"10K, 21K",                                type:"🛣",tr:true, notes:"",         maxKm:21},
+  {id:61, name:"Phokaia Yarı Maratonu",              date:"17.05.2026",   month:"Mayıs",  loc:"İzmir, Eski Foça",          dist:"5K, 10K, 21K",                            type:"🛣",tr:true, notes:"YENİ",     maxKm:21},
+  {id:62, name:"19 Mayıs Samsun Yarı Maratonu",     date:"19.05.2026",   month:"Mayıs",  loc:"Samsun",                    dist:"21K",                                     type:"🛣",tr:true, notes:"",         maxKm:21},
+  {id:63, name:"Ohrid Ultra Trail",                   date:"22-24.05.2026",month:"Mayıs",  loc:"Makedonya",                 dist:"10K, 21K, 42K, 65K, 105K",               type:"🌳",tr:false,notes:"",         maxKm:105},
+  {id:64, name:"Run Caretta Run",                     date:"23.05.2026",   month:"Mayıs",  loc:"Muğla",                     dist:"5K, 10K, 21K, 30K, 50K",                 type:"🌳",tr:true, notes:"YENİ",     maxKm:50},
+  {id:65, name:"Mozart 100 by UTMB",                 date:"23.05.2026",   month:"Mayıs",  loc:"Avusturya, Salzburg",       dist:"12K, 28K, 39K, 72K, 119K",               type:"🌳",tr:false,notes:"UTMB",     maxKm:119},
+  {id:66, name:"Transylvania 100",                    date:"23.05.2026",   month:"Mayıs",  loc:"Romanya",                   dist:"20K, 30K, 50K, 80K, 100K",               type:"🌳",tr:false,notes:"",         maxKm:100},
+  {id:67, name:"Cadde 21K",                           date:"24.05.2026",   month:"Mayıs",  loc:"İstanbul",                  dist:"10K, 21K",                                type:"🛣",tr:true, notes:"",         maxKm:21},
+  {id:68, name:"Swiss Canyon Trail",                  date:"29-31.05.2026",month:"Mayıs",  loc:"İsviçre",                   dist:"16K, 31K, 51K, 81K, 111K",               type:"🌳",tr:false,notes:"WTM",      maxKm:111},
+  {id:69, name:"Magic Cappadocia Trail",              date:"30.05-06.06.2026",month:"Mayıs",loc:"Nevşehir, Göreme",         dist:"5 etaplı, 100K",                          type:"🌳",tr:true, notes:"YENİ UTMB",maxKm:100},
+  {id:70, name:"Stockholm Marathon",                  date:"30.05.2026",   month:"Mayıs",  loc:"İsveç",                     dist:"42K",                                     type:"🛣",tr:false,notes:"",         maxKm:42},
+  {id:71, name:"Doca Tirilye Ultra",                  date:"06.06.2026",   month:"Haziran",loc:"Bursa, Tirilye",             dist:"15K, 30K, 59K",                           type:"🌳",tr:true, notes:"ITRA",     maxKm:59},
+  {id:72, name:"Gökçeada Ultra Trail",               date:"06.06.2026",   month:"Haziran",loc:"Çanakkale",                 dist:"5K, 10K, 33K, 44K",                       type:"🌳",tr:true, notes:"ITRA",     maxKm:44},
+  {id:73, name:"Ultra Sümela",                       date:"06.06.2026",   month:"Haziran",loc:"Trabzon, Maçka",             dist:"12K, 27K, 61K",                           type:"🌳",tr:true, notes:"ITRA",     maxKm:61},
+  {id:74, name:"Sandras Ultra Trail",                 date:"06.06.2026",   month:"Haziran",loc:"Denizli, Beyağaç",          dist:"5K, 12K, 24K, 50K, 70K",                 type:"🌳",tr:true, notes:"YENİ ITRA",maxKm:70},
+  {id:75, name:"MarmaRun",                            date:"07.06.2026",   month:"Haziran",loc:"İstanbul",                  dist:"5K, 10K",                                 type:"🛣",tr:true, notes:"",         maxKm:10},
+  {id:76, name:"Karageçit Trail",                    date:"07.06.2026",   month:"Haziran",loc:"Mersin, Kadıncık Barajı",   dist:"8K, 15K, 30K, 50K",                       type:"🌳",tr:true, notes:"ITRA",     maxKm:50},
+  {id:77, name:"Trail 100 Andorra by UTMB",           date:"11-14.06.2026",month:"Haziran",loc:"İspanya",                   dist:"10K, 21K, 50K, 80K, 105K",               type:"🌳",tr:false,notes:"UTMB",     maxKm:105},
+  {id:78, name:"Sapanca Ultra Marathon",              date:"13-14.06.2026",month:"Haziran",loc:"Sakarya",                   dist:"6K, 14K, 22K, 40K, 55K",                 type:"🌳",tr:true, notes:"ITRA UTMB",maxKm:55},
+  {id:79, name:"HMDS Cappadocia",                     date:"13-21.06.2026",month:"Haziran",loc:"Nevşehir, Ürgüp",           dist:"70K, 100K, 120K – 3 gün etaplı",          type:"🌳",tr:true, notes:"",         maxKm:120},
+  {id:80, name:"Edremit Yarı Maratonu",              date:"14.06.2026",   month:"Haziran",loc:"Balıkesir, Edremit",         dist:"5K, 10K, 21K",                            type:"🛣",tr:true, notes:"YENİ",     maxKm:21},
+  {id:81, name:"Zugspitz Ultra Trail by UTMB",        date:"18-20.06.2026",month:"Haziran",loc:"Almanya",                   dist:"16K, 28.5K, 44K, 68K, 86K, 106K, 100M", type:"🌳",tr:false,notes:"UTMB",     maxKm:161},
+  {id:82, name:"Broken Arrow Skyrace",                date:"19-21.06.2026",month:"Haziran",loc:"ABD",                       dist:"4.8K VK, 11K, 18K, 23K, 46K",            type:"🌳",tr:false,notes:"",         maxKm:46},
+  {id:83, name:"Bozcaada Yarı Maratonu",             date:"20.06.2026",   month:"Haziran",loc:"Çanakkale",                 dist:"5K, 10.5K, 21K",                          type:"🛣",tr:true, notes:"",         maxKm:21},
+  {id:84, name:"Trakya Ultra",                        date:"20.06.2026",   month:"Haziran",loc:"Tekirdağ, Uçmakdere",       dist:"10K, 18K, 37K, 51K",                      type:"🌳",tr:true, notes:"",         maxKm:51},
+  {id:85, name:"Lavaredo Ultra Trail by UTMB",        date:"24-28.06.2026",month:"Haziran",loc:"İtalya, Cortina",           dist:"10K, 20K, 50K, 80K, 120K",               type:"🌳",tr:false,notes:"UTMB",     maxKm:120},
+  {id:86, name:"Mont Blanc Maratonu",                 date:"25-28.06.2026",month:"Haziran",loc:"Fransa",                    dist:"4K VK, 10K, 23K, 42K, 90K",              type:"🌳",tr:false,notes:"",         maxKm:90},
+  {id:87, name:"Olympus Marathon",                    date:"26-28.06.2026",month:"Haziran",loc:"Yunanistan",                dist:"4K VK, 5K, 14K, 44K, 71K",               type:"🌳",tr:false,notes:"",         maxKm:71},
+  {id:88, name:"Western States Endurance Run",        date:"27-28.06.2026",month:"Haziran",loc:"ABD",                       dist:"100M",                                    type:"🌳",tr:false,notes:"UTMB",     maxKm:161},
+  {id:89, name:"Aksu Anamas Yayla Trail",             date:"28.06.2026",   month:"Haziran",loc:"Isparta",                   dist:"16K, 25K",                                type:"🌳",tr:true, notes:"",         maxKm:25},
+  {id:90, name:"Amanos Ultra Trail",                  date:"28.06.2026",   month:"Haziran",loc:"Osmaniye",                  dist:"5K, 16K, 27K, 50K",                       type:"🌳",tr:true, notes:"YENİ",     maxKm:50},
+  {id:91, name:"Vald'Aran Pyrenees by UTMB",         date:"01-05.07.2026",month:"Temmuz", loc:"İspanya",                   dist:"15K, 30K, 55K, 75K, 110K, 163K",         type:"🌳",tr:false,notes:"UTMB",     maxKm:163},
+  {id:92, name:"Quebec Mega Trail",                   date:"02-05.07.2026",month:"Temmuz", loc:"Kanada",                    dist:"30K, 72K, 90K, 137K",                    type:"🌳",tr:false,notes:"WTM",      maxKm:137},
+  {id:93, name:"Palandöken Run to Stars",            date:"03-04.07.2026",month:"Temmuz", loc:"Erzurum, Palandöken",        dist:"5K VK, 10K, 28K, 53K",                   type:"🌋",tr:true, notes:"ITRA",     maxKm:53},
+  {id:94, name:"Gece Maratonu",                       date:"04.07.2026",   month:"Temmuz", loc:"İstanbul, Sarıyer",         dist:"10K, 21K, 42K",                           type:"🛣",tr:true, notes:"YENİ",     maxKm:42},
+  {id:95, name:"Safrun Ultra Trail",                  date:"04-05.07.2026",month:"Temmuz", loc:"Karabük",                   dist:"6K, 12.5K, 20.5K, 47K",                  type:"🌳",tr:true, notes:"YENİ",     maxKm:47},
+  {id:96, name:"Restonica Trail by UTMB",             date:"09-11.07.2026",month:"Temmuz", loc:"Fransa, Korsika",           dist:"17K, 33K, 67K, 110K",                    type:"🌳",tr:false,notes:"UTMB",     maxKm:110},
+  {id:97, name:"Kemaliye Silk Road Ultra Trail",      date:"10-12.07.2026",month:"Temmuz", loc:"Erzincan, Kemaliye",        dist:"5K, 10K, 21K",                            type:"🌳",tr:true, notes:"",         maxKm:21},
+  {id:98, name:"Ultra Trail Verbier St Bernard",      date:"10-12.07.2026",month:"Temmuz", loc:"İsviçre",                   dist:"28K, 43K, 77K, 140K",                    type:"🌳",tr:false,notes:"UTMB",     maxKm:140},
+  {id:99, name:"Hasandağı Ultra Trail",              date:"11.07.2026",   month:"Temmuz", loc:"Aksaray, Ihlara Vadisi",     dist:"5K, 16K, 27K, 45K",                      type:"🌋",tr:true, notes:"ITRA",     maxKm:45},
+  {id:100,name:"Eiger Ultra Trail by UTMB",           date:"15-19.07.2026",month:"Temmuz", loc:"İsviçre",                   dist:"E16, E35, E51, E101, E250",               type:"🌳",tr:false,notes:"UTMB",     maxKm:250},
+  {id:101,name:"Zagori Race",                         date:"17-19.07.2026",month:"Temmuz", loc:"Yunanistan",                dist:"5K, 10K, 21K, 33K, 60K, 93K",            type:"🌳",tr:false,notes:"",         maxKm:93},
+  {id:102,name:"Uludağ Premium Ultra Trail",         date:"18.07.2026",   month:"Temmuz", loc:"Bursa, Uludağ",             dist:"6K, 16K, 30K, 42K, 70K",                 type:"🌳",tr:true, notes:"ITRA UTMB",maxKm:70},
+  {id:103,name:"Speedgoat by UTMB",                  date:"23-25.07.2026",month:"Temmuz", loc:"ABD",                       dist:"10K, 31K, 50K",                           type:"🌳",tr:false,notes:"UTMB",     maxKm:50},
+  {id:104,name:"Grossglockner Ultra Trail",           date:"23-26.07.2026",month:"Temmuz", loc:"Almanya",                   dist:"16K, 37K, 57K, 84K, 110K",               type:"🌳",tr:false,notes:"",         maxKm:110},
+  {id:105,name:"Salomon GTS – Pitz Alpine Glacier",   date:"31.07-02.08.2026",month:"Temmuz",loc:"Avusturya, Tyrol",        dist:"15K, 30K, 45K, 60K, 90K, 105K",          type:"🎢",tr:false,notes:"",         maxKm:105},
+  {id:106,name:"Konya Ultra",                         date:"01.08.2026",   month:"Ağustos",loc:"Konya, Sille",              dist:"5K, 15K, 30K, 54K, 75K",                 type:"🌳",tr:true, notes:"YENİ",     maxKm:75},
+  {id:107,name:"Gauja Trail by UTMB",                 date:"01-02.08.2026",month:"Ağustos",loc:"Letonya",                   dist:"10K, 20K, 50K, 100K",                    type:"🌳",tr:false,notes:"UTMB",     maxKm:100},
+  {id:108,name:"KAT 100 by UTMB",                    date:"06-08.08.2026",month:"Ağustos",loc:"Avusturya",                  dist:"8K, 24K, 51K, 81K, 100M",               type:"🌳",tr:false,notes:"UTMB",     maxKm:161},
+  {id:109,name:"Salomon GTS – Sierre-Zinal",          date:"08.08.2026",   month:"Ağustos",loc:"İsviçre",                   dist:"31K",                                     type:"🎢",tr:false,notes:"",         maxKm:31},
+  {id:110,name:"Eskişehir Yarı Maratonu",            date:"09.08.2026",   month:"Ağustos",loc:"Eskişehir",                  dist:"10K, 21K",                                type:"🛣",tr:true, notes:"",         maxKm:21},
+  {id:111,name:"Ultra Abant",                         date:"14-15.08.2026",month:"Ağustos",loc:"Bolu, Abant",               dist:"6K, 18K, 34K, 60K",                       type:"🌳",tr:true, notes:"ITRA",     maxKm:60},
+  {id:112,name:"Grand Raid Des Pyrenees",             date:"19-23.08.2026",month:"Ağustos",loc:"Fransa",                    dist:"40K, 60K, 80K, 120K, 160K",              type:"🌳",tr:false,notes:"WTM",      maxKm:160},
+  {id:113,name:"Runfire Salt Lake Ultra Trail",       date:"21-23.08.2026",month:"Ağustos",loc:"Aksaray, Eskil",            dist:"10K, 15K, 20K, 40K, 80K, 100M",          type:"🌳",tr:true, notes:"ITRA UTMB",maxKm:161},
+  {id:114,name:"Davraz Sky Run",                      date:"22.08.2026",   month:"Ağustos",loc:"Isparta",                   dist:"10K, 25K",                                type:"🌋",tr:true, notes:"",         maxKm:25},
+  {id:115,name:"UTMB OCC",                            date:"27.08.2026",   month:"Ağustos",loc:"İsviçre, Chamonix",         dist:"57K",                                     type:"🌳",tr:false,notes:"UTMB",     maxKm:57},
+  {id:116,name:"UTMB CCC",                            date:"28.08.2026",   month:"Ağustos",loc:"Fransa, Chamonix",          dist:"101K",                                    type:"🌳",tr:false,notes:"UTMB",     maxKm:101},
+  {id:117,name:"UTMB",                                date:"28.08.2026",   month:"Ağustos",loc:"Fransa, Chamonix",          dist:"100M",                                    type:"🌳",tr:false,notes:"UTMB",     maxKm:161},
+  {id:118,name:"Sydney Marathon",                     date:"30.08.2026",   month:"Ağustos",loc:"Avustralya, Sidney",        dist:"42K",                                     type:"🛣",tr:false,notes:"",         maxKm:42},
+  {id:119,name:"Ultra Tour Monte Rosa",               date:"02-05.09.2026",month:"Eylül",  loc:"İsviçre",                   dist:"19K, 60K, 170K",                          type:"🌳",tr:false,notes:"",         maxKm:170},
+  {id:120,name:"İstanbul Ultra",                     date:"05.09.2026",   month:"Eylül",  loc:"İstanbul, Kemerburgaz",      dist:"5K, 15K, 30K, 60K",                       type:"🌳",tr:true, notes:"ITRA UTMB",maxKm:60},
+  {id:121,name:"Edirne Yarı Maratonu",               date:"06.09.2026",   month:"Eylül",  loc:"Edirne",                    dist:"10K, 21K",                                type:"🛣",tr:true, notes:"",         maxKm:21},
+  {id:122,name:"Pirin Ultra",                         date:"10-13.09.2026",month:"Eylül",  loc:"Bulgaristan, Bansko",       dist:"25K, 38K, 68K, 160K",                    type:"🌋",tr:false,notes:"",         maxKm:160},
+  {id:123,name:"Kaçkar by UTMB",                     date:"11-13.09.2026",month:"Eylül",  loc:"Rize",                      dist:"20K, 50K, 100K",                          type:"🌳",tr:true, notes:"UTMB ITRA",maxKm:100},
+  {id:124,name:"Ayvalık Yarı Maratonu",              date:"13.09.2026",   month:"Eylül",  loc:"Balıkesir, Ayvalık",        dist:"5K, 10K, 21K",                            type:"🛣",tr:true, notes:"",         maxKm:21},
+  {id:125,name:"Vietnam Mountain Marathon",           date:"17-20.09.2026",month:"Eylül",  loc:"Vietnam",                   dist:"10K, 21K, 50K, 70K, 100K",               type:"🌳",tr:false,notes:"WTM",      maxKm:100},
+  {id:126,name:"Kayseri Yarı Maratonu",              date:"20.09.2026",   month:"Eylül",  loc:"Kayseri",                   dist:"10K, 21K",                                type:"🛣",tr:true, notes:"",         maxKm:21},
+  {id:127,name:"Copenhagen Half Marathon",            date:"20.09.2026",   month:"Eylül",  loc:"Danimarka",                 dist:"21K",                                     type:"🛣",tr:false,notes:"",         maxKm:21},
+  {id:128,name:"Gökova Yarı Maratonu",              date:"26-27.09.2026",month:"Eylül",  loc:"Muğla, Akyaka",             dist:"5K, 10K, 21K",                            type:"🛣",tr:true, notes:"",         maxKm:21},
+  {id:129,name:"Büyükada Yarı Maratonu",            date:"27.09.2026",   month:"Eylül",  loc:"İstanbul, Büyükada",        dist:"5K, 10K, 21K",                            type:"🛣",tr:true, notes:"",         maxKm:21},
+  {id:130,name:"Berlin Marathon",                     date:"27.09.2026",   month:"Eylül",  loc:"Almanya",                   dist:"42K",                                     type:"🛣",tr:false,notes:"",         maxKm:42},
+  {id:131,name:"Ultra Pirineu",                       date:"02-04.10.2026",month:"Ekim",   loc:"İspanya, Bagà",             dist:"VK, 21K, 42K, 100K",                     type:"🌳",tr:false,notes:"",         maxKm:100},
+  {id:132,name:"Beypazarı Ultra Trail",              date:"03.10.2026",   month:"Ekim",   loc:"Ankara, Beypazarı",         dist:"8K, 19K, 39K, 52K",                       type:"🌳",tr:true, notes:"",         maxKm:52},
+  {id:133,name:"Eker I Run",                          date:"04.10.2026",   month:"Ekim",   loc:"Bursa",                     dist:"5K, 15K, 42K",                            type:"🛣",tr:true, notes:"",         maxKm:42},
+  {id:134,name:"Bodrum Yarı Maratonu",               date:"04.10.2026",   month:"Ekim",   loc:"Muğla, Bodrum",             dist:"5K, 10K, 21K",                            type:"🛣",tr:true, notes:"",         maxKm:21},
+  {id:135,name:"Cologne Marathon",                    date:"04.10.2026",   month:"Ekim",   loc:"Almanya, Köln",             dist:"21K, 42K",                                type:"🛣",tr:false,notes:"",         maxKm:42},
+  {id:136,name:"Kyzikos Ultra",                       date:"10-11.10.2026",month:"Ekim",   loc:"Balıkesir, Erdek",          dist:"5K, 20K, 35K, 65K",                       type:"🌳",tr:true, notes:"",         maxKm:65},
+  {id:137,name:"Cumhurbaşkanlığı Koşusu",           date:"11.10.2026",   month:"Ekim",   loc:"Ankara",                    dist:"5K, 10K, 21K",                            type:"🛣",tr:true, notes:"",         maxKm:21},
+  {id:138,name:"Anadolu Yarı Maratonu",              date:"11.10.2026",   month:"Ekim",   loc:"İstanbul, Kadıköy–Kartal",  dist:"10K, 21K",                                type:"🛣",tr:true, notes:"YENİ",     maxKm:21},
+  {id:139,name:"Gelibolu Maratonu",                  date:"11.10.2026",   month:"Ekim",   loc:"Çanakkale, Kilitbahir",     dist:"10K, 21K, 42K",                           type:"🛣",tr:true, notes:"",         maxKm:42},
+  {id:140,name:"Chicago Marathon",                    date:"11.10.2026",   month:"Ekim",   loc:"ABD",                       dist:"42K",                                     type:"🛣",tr:false,notes:"",         maxKm:42},
+  {id:141,name:"Festival des Templiers",              date:"15-18.10.2026",month:"Ekim",   loc:"Fransa",                    dist:"17K, 33K, 47K, 62K, 80K, 100K",          type:"🌳",tr:false,notes:"",         maxKm:100},
+  {id:142,name:"Cappadocia Ultra Trail",              date:"16-17.10.2026",month:"Ekim",   loc:"Nevşehir, Ürgüp",           dist:"14K, 38K, 63K, 119K",                    type:"🌳",tr:true, notes:"ITRA UTMB",maxKm:119},
+  {id:143,name:"TCS Amsterdam Marathon",              date:"18.10.2026",   month:"Ekim",   loc:"Hollanda",                  dist:"8K, 21K, 42K",                            type:"🛣",tr:false,notes:"",         maxKm:42},
+  {id:144,name:"Heliz Kaş Yarı Maratonu",           date:"24.10.2026",   month:"Ekim",   loc:"Antalya, Kaş",              dist:"5K, 12K, 21K",                            type:"🛣",tr:true, notes:"",         maxKm:21},
+  {id:145,name:"Kullamannen by UTMB",                date:"30-31.10.2026",month:"Ekim",   loc:"İsveç",                     dist:"22K, 53K, 108K, 100M",                   type:"🌳",tr:false,notes:"UTMB",     maxKm:161},
+  {id:146,name:"Manavgat Backyard Ultra",             date:"31.10.2026",   month:"Ekim",   loc:"Antalya, Manavgat",         dist:"6.706K x katları",                        type:"🌳",tr:true, notes:"",         maxKm:200},
+  {id:147,name:"İstanbul Maratonu",                  date:"01.11.2026",   month:"Kasım",  loc:"İstanbul",                  dist:"15K, 42K",                                type:"🛣",tr:true, notes:"",         maxKm:42},
+  {id:148,name:"New York Marathon",                   date:"01.11.2026",   month:"Kasım",  loc:"ABD",                       dist:"42K",                                     type:"🛣",tr:false,notes:"",         maxKm:42},
+  {id:149,name:"Varda Ultra Trail",                   date:"07.11.2026",   month:"Kasım",  loc:"Adana",                     dist:"14K, 27K, 62K",                           type:"🌳",tr:true, notes:"",         maxKm:62},
+  {id:150,name:"Bodrun Ultra Maratonu",               date:"08.11.2026",   month:"Kasım",  loc:"Muğla, Bodrum",             dist:"5K, 10K, 22K, 34K, 60K",                 type:"🌳",tr:true, notes:"",         maxKm:60},
+  {id:151,name:"Athens Marathon",                     date:"08.11.2026",   month:"Kasım",  loc:"Yunanistan",                dist:"5K, 10K, 42K",                            type:"🛣",tr:false,notes:"",         maxKm:42},
+  {id:152,name:"Latmos Ultra",                        date:"14.11.2026",   month:"Kasım",  loc:"Muğla, Bafa",               dist:"8K, 17K, 26K, 45K",                       type:"🌳",tr:true, notes:"UTMB",     maxKm:45},
+  {id:153,name:"RMB Ultra Trail Cape Town",           date:"20-22.11.2026",month:"Kasım",  loc:"Güney Afrika",              dist:"16K, 23K, 35K, 55K, 100K, 100M",         type:"🌳",tr:false,notes:"WTM",      maxKm:161},
+  {id:154,name:"Çatalkaya Ultra Trail",              date:"21.11.2026",   month:"Kasım",  loc:"İzmir",                     dist:"5K, 13K, 29K, 45K, 74K",                 type:"🌳",tr:true, notes:"YENİ ITRA UTMB",maxKm:74},
+  {id:155,name:"Çenedağ Ultra Trail",               date:"22.11.2026",   month:"Kasım",  loc:"İzmit, Derince",            dist:"8K, 14K, 21K, 57K",                       type:"🌳",tr:true, notes:"YENİ ITRA",maxKm:57},
+];
+
+const MONTHS_ORDER = ["Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım"];
+
+const DIST_BUCKETS = [
+  {val:"0-10",   label:"10K ve altı",        min:0,   max:10},
+  {val:"10-21",  label:"10–21K",             min:10,  max:21},
+  {val:"21-42",  label:"21–42K (Maraton)",   min:21,  max:42},
+  {val:"42-80",  label:"42–80K (Trail orta)",min:42,  max:80},
+  {val:"80-160", label:"80–160K (Ultra)",    min:80,  max:160},
+  {val:"160-999",label:"160K+ (Extreme)",    min:160, max:999},
+];
+
+let state = {
+  name:'', prefMonths:[], prefLoc:'all', prefDists:[], prefTypes:[],
+  selectedIds: new Set(),
+  filterMonths:[], filterLoc:'all', filterDists:[], filterTypes:[],
+  filterSeries:'all', searchText:'', sortMode:'date'
+};
+let obSelections = {months:[], location:null, dists:[], types:[]};
+
+// ─── ONBOARDING ───
+document.getElementById('name-input').addEventListener('input', function(){
+  document.getElementById('name-btn').disabled = this.value.trim().length < 2;
+  state.name = this.value.trim();
+});
+document.getElementById('name-input').addEventListener('keydown', function(e){
+  if (e.key==='Enter' && this.value.trim().length>=2) nextStep(1);
+});
+
+function toggleOpt(el, group) {
+  if (group==='location') {
+    document.querySelectorAll('#location-opts .ob-opt').forEach(e=>e.classList.remove('selected'));
+    el.classList.add('selected');
+    obSelections.location = el.dataset.val;
+    document.getElementById('location-btn').disabled = false;
+  } else if (group==='dists') {
+    const min = el.dataset.min, max = el.dataset.max;
+    const isAll = (min==='0' && max==='999');
+    if (isAll) {
+      document.querySelectorAll('#dist-opts .ob-opt').forEach(e=>e.classList.remove('selected'));
+      el.classList.add('selected');
+      obSelections.dists = ['all'];
+    } else {
+      // deselect "hepsi" option
+      document.querySelector('#dist-opts [data-min="0"][data-max="999"]').classList.remove('selected');
+      const idx = obSelections.dists.indexOf('all');
+      if (idx>-1) obSelections.dists.splice(idx,1);
+      el.classList.toggle('selected');
+      const val = `${min}-${max}`;
+      const i = obSelections.dists.indexOf(val);
+      if (i>-1) obSelections.dists.splice(i,1); else obSelections.dists.push(val);
+    }
+    document.getElementById('dist-btn').disabled = obSelections.dists.length===0;
+  } else {
+    el.classList.toggle('selected');
+    const val = el.dataset.val;
+    const arr = obSelections[group];
+    const idx = arr.indexOf(val);
+    if (idx>-1) arr.splice(idx,1); else arr.push(val);
+    if (group==='months') document.getElementById('months-btn').disabled = arr.length===0;
+    if (group==='types')  document.getElementById('types-btn').disabled  = arr.length===0;
+  }
+}
+
+function nextStep(from) {
+  document.getElementById(`step-${from}`).classList.remove('active');
+  const next = from+1;
+  document.getElementById(`step-${next}`).classList.add('active');
+  document.getElementById(`dot-${from}`).classList.remove('active');
+  document.getElementById(`dot-${next}`).classList.add('active');
+}
+
+function launchDashboard() {
+  state.name      = document.getElementById('name-input').value.trim();
+  state.prefMonths= obSelections.months;
+  state.prefLoc   = obSelections.location||'all';
+  state.prefDists = obSelections.dists;
+  state.prefTypes = obSelections.types;
+  state.filterMonths = [...state.prefMonths];
+  state.filterLoc    = state.prefLoc;
+  state.filterDists  = obSelections.dists.includes('all') ? [] : [...obSelections.dists];
+  state.filterTypes  = [...state.prefTypes];
+
+  document.getElementById('onboarding').style.display = 'none';
+  document.getElementById('dashboard').style.display  = 'block';
+  document.getElementById('db-name').textContent = state.name;
+  buildSidebarFilters();
+  renderRaces();
+}
+
+// ─── DASHBOARD ───
+function buildSidebarFilters() {
+  // Distance pills
+  const sd = document.getElementById('sidebar-dists');
+  sd.innerHTML = `<div class="fp ${state.filterDists.length===0?'active':''}" onclick="toggleDistFilter(this,'all')">Tümü</div>`;
+  DIST_BUCKETS.forEach(b=>{
+    const a = state.filterDists.includes(b.val)?'active':'';
+    sd.innerHTML += `<div class="fp ${a}" onclick="toggleDistFilter(this,'${b.val}')">${b.label}</div>`;
+  });
+
+  // Month pills
+  const sm = document.getElementById('sidebar-months');
+  sm.innerHTML = `<div class="fp ${state.filterMonths.length===0?'active':''}" onclick="toggleMonthFilter(this,'all')">Tümü</div>`;
+  MONTHS_ORDER.forEach(m=>{
+    const a = state.filterMonths.includes(m)?'active':'';
+    sm.innerHTML += `<div class="fp ${a}" onclick="toggleMonthFilter(this,'${m}')">${m}</div>`;
+  });
+
+  // Type pills
+  const st = document.getElementById('sidebar-types');
+  const types = {'🌳':'Patika','🛣':'Yol','🌋':'Dağ','🎢':'Skyrace','🏊':'Yüzme','🚵':'Bisiklet','🧭':'Oryantirig'};
+  st.innerHTML = `<div class="fp ${state.filterTypes.length===0?'active':''}" onclick="toggleTypeFilter(this,'all')">Tümü</div>`;
+  Object.entries(types).forEach(([e,l])=>{
+    const a = state.filterTypes.includes(e)?'active':'';
+    st.innerHTML += `<div class="fp ${a}" onclick="toggleTypeFilter(this,'${e}')">${e} ${l}</div>`;
+  });
+}
+
+function toggleDistFilter(el, val) {
+  const pills = document.querySelectorAll('#sidebar-dists .fp');
+  if (val==='all') {
+    state.filterDists=[];
+    pills.forEach(p=>p.classList.remove('active'));
+    el.classList.add('active');
+  } else {
+    pills[0].classList.remove('active');
+    el.classList.toggle('active');
+    const idx = state.filterDists.indexOf(val);
+    if (idx>-1) state.filterDists.splice(idx,1); else state.filterDists.push(val);
+    if (state.filterDists.length===0) pills[0].classList.add('active');
+  }
+  applyFilters();
+}
+
+function toggleMonthFilter(el, val) {
+  const pills = document.querySelectorAll('#sidebar-months .fp');
+  if (val==='all') {
+    state.filterMonths=[];
+    pills.forEach(p=>p.classList.remove('active'));
+    el.classList.add('active');
+  } else {
+    pills[0].classList.remove('active');
+    el.classList.toggle('active');
+    const idx = state.filterMonths.indexOf(val);
+    if (idx>-1) state.filterMonths.splice(idx,1); else state.filterMonths.push(val);
+    if (state.filterMonths.length===0) pills[0].classList.add('active');
+  }
+  applyFilters();
+}
+
+function toggleTypeFilter(el, val) {
+  const pills = document.querySelectorAll('#sidebar-types .fp');
+  if (val==='all') {
+    state.filterTypes=[];
+    pills.forEach(p=>p.classList.remove('active'));
+    el.classList.add('active');
+  } else {
+    pills[0].classList.remove('active');
+    el.classList.toggle('active');
+    const idx = state.filterTypes.indexOf(val);
+    if (idx>-1) state.filterTypes.splice(idx,1); else state.filterTypes.push(val);
+    if (state.filterTypes.length===0) pills[0].classList.add('active');
+  }
+  applyFilters();
+}
+
+function setFilter(el, group) {
+  document.querySelectorAll(`[data-group="${group}"]`).forEach(e=>e.classList.remove('active'));
+  el.classList.add('active');
+  if (group==='loc')    state.filterLoc    = el.dataset.val;
+  if (group==='series') state.filterSeries = el.dataset.val;
+  applyFilters();
+}
+
+function setSort(mode) {
+  state.sortMode = mode;
+  document.getElementById('sort-date-btn').classList.toggle('active', mode==='date');
+  document.getElementById('sort-dist-btn').classList.toggle('active', mode==='dist');
+  renderRaces();
+}
+
+function applyFilters() {
+  state.searchText = document.getElementById('search-input').value.toLowerCase();
+  renderRaces();
+}
+
+function parseAllKms(r) {
+  // Extract all numeric km values from dist string
+  // Handles: "5K, 10K, 21K, 42K", "100M", "6.706K", "E16, E35", "250K – 6 gün", "VK"
+  const s = r.dist || '';
+  const nums = [];
+  // Match patterns like: 6.706K, 10K, 100M, E16, 100M (miles → ~161km)
+  const re = /(?:E)?(\d+(?:\.\d+)?)\s*([KkMm]?)/g;
+  let m;
+  while ((m = re.exec(s)) !== null) {
+    let val = parseFloat(m[1]);
+    const unit = m[2].toUpperCase();
+    if (unit === 'M' && val < 10) val = Math.round(val * 1.609); // miles → km (100M = ~161)
+    if (val >= 1) nums.push(val); // ignore single digits that are likely not distances
+  }
+  // If nothing parsed but maxKm exists, fall back
+  if (nums.length === 0 && r.maxKm > 0) nums.push(r.maxKm);
+  return nums;
+}
+
+function raceMatchesDist(r) {
+  if (state.filterDists.length === 0) return true;
+  if (state.filterDists.includes('all')) return true;
+  const kms = parseAllKms(r);
+  if (kms.length === 0) return true; // can't determine, show it
+  return state.filterDists.some(val => {
+    const bucket = DIST_BUCKETS.find(b => b.val === val);
+    if (!bucket) return true;
+    // yarışın herhangi bir mesafesi bu banda giriyorsa göster
+    return kms.some(km => km >= bucket.min && km <= bucket.max);
+  });
+}
+
+function getFilteredRaces() {
+  return RACES.filter(r=>{
+    if (state.filterMonths.length>0 && !state.filterMonths.includes(r.month)) return false;
+    if (state.filterLoc==='tr'    && !r.tr)  return false;
+    if (state.filterLoc==='world' && r.tr)   return false;
+    if (state.filterTypes.length>0 && !state.filterTypes.includes(r.type)) return false;
+    if (state.filterSeries!=='all' && !r.notes.includes(state.filterSeries)) return false;
+    if (!raceMatchesDist(r)) return false;
+    if (state.searchText && !r.name.toLowerCase().includes(state.searchText) && !r.loc.toLowerCase().includes(state.searchText)) return false;
+    return true;
+  });
+}
+
+function distLabel(km) {
+  if (km===0)    return '— (Etkinlik)';
+  if (km<=5)     return '5K\'ya kadar';
+  if (km<=10)    return '10K';
+  if (km<=21)    return 'Yarı Maraton';
+  if (km<=42)    return 'Maraton';
+  if (km<=80)    return 'Ultra (50–80K)';
+  return '100K+';
+}
+
+function renderRaces() {
+  const races = getFilteredRaces();
+  const main  = document.getElementById('db-main-content');
+
+  if (races.length===0) {
+    main.innerHTML=`<div class="empty-state"><div class="empty-state-icon">🔍</div><h3>Yarış bulunamadı</h3><p>Filtreleri değiştirerek tekrar dene.</p></div>`;
+    updateSelCount(); return;
+  }
+
+  let html = `<div class="db-results-header"><div class="db-results-title">Yarışlar</div><div class="db-results-count">${races.length} yarış</div></div>`;
+
+  if (state.sortMode==='date') {
+    // Group by month
+    const byMonth = {};
+    MONTHS_ORDER.forEach(m=>byMonth[m]=[]);
+    races.forEach(r=>{ if(byMonth[r.month]) byMonth[r.month].push(r); });
+    MONTHS_ORDER.forEach(month=>{
+      const g = byMonth[month];
+      if (!g.length) return;
+      html += `<div class="month-group"><div class="month-label">${month.toUpperCase()}</div><div class="race-grid">`;
+      g.forEach(r=>{ html += raceCardHTML(r); });
+      html += `</div></div>`;
+    });
+  } else {
+    // Group by distance bucket
+    const buckets = [
+      {label:'🏃 5K\'ya Kadar',  filter:r=>r.maxKm>0  && r.maxKm<=5},
+      {label:'🏃 10K',           filter:r=>r.maxKm>5  && r.maxKm<=10},
+      {label:'🏃 Yarı Maraton',  filter:r=>r.maxKm>10 && r.maxKm<=21},
+      {label:'🏅 Maraton (42K)', filter:r=>r.maxKm>21 && r.maxKm<=42},
+      {label:'⚡ Ultra (50–80K)',filter:r=>r.maxKm>42 && r.maxKm<=80},
+      {label:'🔥 100K+',         filter:r=>r.maxKm>80},
+      {label:'🎯 Etkinlik / Kamp',filter:r=>r.maxKm===0},
+    ];
+    buckets.forEach(b=>{
+      const g = races.filter(b.filter);
+      if (!g.length) return;
+      g.sort((a,c)=>MONTHS_ORDER.indexOf(a.month)-MONTHS_ORDER.indexOf(c.month));
+      html += `<div class="dist-group-label">${b.label}</div><div class="race-grid">`;
+      g.forEach(r=>{ html += raceCardHTML(r); });
+      html += `</div>`;
+    });
+  }
+
+  main.innerHTML = html;
+  updateSelCount();
+}
+
+function raceCardHTML(r) {
+  const sel   = state.selectedIds.has(r.id) ? 'selected' : '';
+  const check = state.selectedIds.has(r.id) ? '✓' : '';
+  const tags  = buildTags(r);
+  return `<div class="race-card ${sel}" onclick="toggleRace(${r.id})">
+    <div class="rc-top">
+      <div class="rc-name">${r.type} ${r.name}</div>
+      <div class="rc-check">${check}</div>
+    </div>
+    <div class="rc-date">📅 ${r.date}</div>
+    <div class="rc-location">📍 ${r.loc}</div>
+    ${r.dist?`<div class="rc-distances">${r.dist}</div>`:''}
+    <div class="rc-tags">${tags}</div>
+  </div>`;
+}
+
+function buildTags(r) {
+  let t='';
+  if (r.tr) t+=`<span class="rc-tag tag-tr">🇹🇷 TR</span>`;
+  if (r.notes.includes('UTMB')) t+=`<span class="rc-tag tag-utmb">UTMB</span>`;
+  if (r.notes.includes('ITRA')) t+=`<span class="rc-tag tag-itra">ITRA</span>`;
+  if (r.notes.includes('WTM'))  t+=`<span class="rc-tag tag-wtm">WTM</span>`;
+  if (r.notes.includes('YENİ'))t+=`<span class="rc-tag tag-new">YENİ 🎈</span>`;
+  return t;
+}
+
+function toggleRace(id) {
+  if (state.selectedIds.has(id)) state.selectedIds.delete(id);
+  else state.selectedIds.add(id);
+  document.querySelectorAll('.race-card').forEach(card=>{
+    if (card.getAttribute('onclick')===`toggleRace(${id})`){
+      card.classList.toggle('selected', state.selectedIds.has(id));
+      card.querySelector('.rc-check').textContent = state.selectedIds.has(id)?'✓':'';
+    }
+  });
+  updateSelCount();
+}
+
+function updateSelCount() {
+  const c = state.selectedIds.size;
+  document.getElementById('sel-count').textContent = c;
+  document.getElementById('sel-count-header').textContent = c;
+}
+
+function clearSelection() { state.selectedIds.clear(); renderRaces(); }
+
+// ─── SNAPSHOT ───
+function showSnapshot() {
+  if (state.selectedIds.size===0) { showToast('Önce yarış seçmelisin! 👆'); return; }
+  document.getElementById('dashboard').style.display='none';
+  document.getElementById('snapshot').style.display='block';
+  window.scrollTo(0,0);
+
+  const selected = RACES.filter(r=>state.selectedIds.has(r.id));
+  selected.sort((a,b)=>MONTHS_ORDER.indexOf(a.month)-MONTHS_ORDER.indexOf(b.month));
+
+  document.getElementById('snap-title').textContent = `${state.name.toUpperCase()}'İN TAKVİMİ`;
+  document.getElementById('snap-total').textContent  = selected.length;
+  document.getElementById('snap-months-count').textContent = [...new Set(selected.map(r=>r.month))].length;
+  document.getElementById('snap-tr-count').textContent     = selected.filter(r=>r.tr).length;
+  document.getElementById('snap-abroad-count').textContent = selected.filter(r=>!r.tr).length;
+
+  const byMonth = {};
+  selected.forEach(r=>{ if(!byMonth[r.month]) byMonth[r.month]=[]; byMonth[r.month].push(r); });
+
+  let cal='';
+  MONTHS_ORDER.forEach(month=>{
+    if (!byMonth[month]) return;
+    cal+=`<div class="snap-month-row"><div class="snap-month-name">${month.toUpperCase()}</div><div class="snap-month-races">`;
+    byMonth[month].forEach(r=>{
+      cal+=`<div class="snap-race-row">
+        <div class="srr-date">${r.date}</div>
+        <div class="srr-info"><div class="srr-name">${r.type} ${r.name}</div><div class="srr-loc">📍 ${r.loc}</div></div>
+        <div class="srr-dist">${r.dist||''}</div>
+      </div>`;
+    });
+    cal+=`</div></div>`;
+  });
+  document.getElementById('snap-calendar').innerHTML = cal;
+
+  // Map dots
+  const map = document.getElementById('snap-map');
+  map.querySelectorAll('.map-dot').forEach(d=>d.remove());
+  selected.forEach((r,i)=>{
+    const angle = (i/selected.length)*Math.PI*2;
+    const cx = r.tr?58:38, cy=50, rad=r.tr?18:28;
+    const x  = Math.max(5,Math.min(93, cx+Math.cos(angle)*rad*(Math.random()*0.5+0.5)));
+    const y  = Math.max(10,Math.min(88,cy+Math.sin(angle)*rad*(Math.random()*0.5+0.5)));
+    const dot = document.createElement('div');
+    dot.className='map-dot';
+    dot.style.cssText=`left:${x}%;top:${y}%;animation-delay:${i*0.12}s;background:${r.tr?'var(--lime)':'var(--orange)'};box-shadow:0 0 12px ${r.tr?'var(--lime)':'var(--orange)'}`;
+    dot.title = r.name;
+    map.appendChild(dot);
+  });
+  map.querySelector('div').innerHTML=`<span style="color:var(--lime)">● Türkiye</span> &nbsp; <span style="color:var(--orange)">● Yurt Dışı</span> &nbsp;·&nbsp; ${selected.length} yarış`;
+}
+
+function backToDashboard() {
+  document.getElementById('snapshot').style.display='none';
+  document.getElementById('dashboard').style.display='block';
+}
+
+function copyShareLink() {
+  const names = RACES.filter(r=>state.selectedIds.has(r.id)).map(r=>r.name).join(', ');
+  navigator.clipboard.writeText(`${state.name}'in 2026 Yarış Takvimi:\n${names}`)
+    .then(()=>showToast('Panoya kopyalandı! 📋'));
+}
+
+function printSnapshot() { window.print(); }
+
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+</script>
+</body>
+</html>
