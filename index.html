@@ -1161,8 +1161,8 @@ function backToDashboard() {
 }
 
 // ═══════════ SUPABASE ═══════════
-const SUPABASE_URL = https://jorejosjrtkrlxydfzzs.supabase.co;
-const SUPABASE_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpvcmVqb3NqcnRrcmx4eWRmenpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4ODk2MzQsImV4cCI6MjA5MDQ2NTYzNH0.oJ8Rq2zgt_fb2V-T0WsweDPWWs-x1btzKGh_ZFeqUqg;
+const SUPABASE_URL = 'https://jorejosjrtkrlxydfzzs.supabase.co' ;
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpvcmVqb3NqcnRrcmx4eWRmenpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4ODk2MzQsImV4cCI6MjA5MDQ2NTYzNH0.oJ8Rq2zgt_fb2V-T0WsweDPWWs-x1btzKGh_ZFeqUqg';
 
 async function sbFetch(path, opts={}) {
   const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
