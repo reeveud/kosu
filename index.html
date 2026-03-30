@@ -1278,6 +1278,8 @@ function backToDashboard() {
   const btn = document.getElementById('save-btn');
   btn.textContent = '💾 Kaydet & Paylaş';
   btn.disabled = false;
+  buildSidebarFilters();
+  renderRaces();
 }
 
 // ═══════════ SUPABASE ═══════════
