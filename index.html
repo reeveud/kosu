@@ -315,12 +315,128 @@
     .snap-month-row { grid-template-columns: 70px 1fr; }
     .snap-race-row { grid-template-columns: 1fr; }
   }
+  /* ── LANDING ── */
+  #landing {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .landing-bg {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 80% 20%, rgba(200,241,53,0.1) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 60% at 10% 80%, rgba(255,92,26,0.08) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .landing-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 40px 24px;
+    position: relative;
+    z-index: 1;
+    max-width: 520px;
+    width: 100%;
+  }
+  .landing-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 13px;
+    letter-spacing: 5px;
+    color: var(--lime);
+    margin-bottom: 32px;
+    line-height: 1.6;
+  }
+  .landing-year {
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .landing-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(56px, 12vw, 96px);
+    line-height: 0.95;
+    color: var(--white);
+    margin-bottom: 16px;
+  }
+  .landing-sub {
+    font-size: 15px;
+    color: var(--muted);
+    font-weight: 300;
+    margin-bottom: 48px;
+    line-height: 1.6;
+  }
+  .landing-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 380px;
+  }
+  .landing-btn-primary, .landing-btn-secondary {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 24px;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    border: none;
+    width: 100%;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .landing-btn-primary {
+    background: var(--lime);
+    color: var(--navy);
+  }
+  .landing-btn-primary span { font-size: 24px; }
+  .landing-btn-primary:hover { background: #d4f546; transform: translateY(-2px); }
+  .landing-btn-secondary {
+    background: var(--slate);
+    color: var(--white);
+    border: 1.5px solid rgba(255,255,255,0.1);
+  }
+  .landing-btn-secondary span { font-size: 24px; }
+  .landing-btn-secondary:hover { border-color: var(--lime); transform: translateY(-2px); }
 </style>
 </head>
 <body>
 
+<!-- ═══════════════ LANDING ═══════════════ -->
+<div id="landing">
+  <div class="landing-bg"></div>
+  <div class="landing-content">
+    <div class="landing-logo">DURKAY<br>KOŞUCULARI</div>
+    <div class="landing-year">2026 · YARIŞ PLANLAYICI</div>
+    <h1 class="landing-title">Sezonunu<br>planla.</h1>
+    <p class="landing-sub">Türkiye ve dünyadan 150+ yarış. Filtrele, seç, paylaş.</p>
+    <div class="landing-actions">
+      <button class="landing-btn-primary" onclick="goOnboarding()">
+        <span>🗓</span>
+        <div>
+          <div style="font-size:15px;font-weight:700;">Takvimimi Oluştur</div>
+          <div style="font-size:12px;font-weight:400;opacity:0.7;margin-top:2px;">Kişisel yarış planı yap</div>
+        </div>
+      </button>
+      <button class="landing-btn-secondary" onclick="goLandingCommunity()">
+        <span>👥</span>
+        <div>
+          <div style="font-size:15px;font-weight:700;">Takvimlere Bak</div>
+          <div style="font-size:12px;font-weight:400;opacity:0.7;margin-top:2px;">Durkay koşucularının planları</div>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════════════ ONBOARDING ═══════════════ -->
-<div id="onboarding">
+<div id="onboarding" style="display:none;">
   <div class="ob-logo">DURKAY KOŞUCULARI<br>YARIŞ PLANLAYICI · 2026</div>
 
   <!-- Step 1: Name -->
@@ -409,7 +525,7 @@
 <!-- ═══════════════ DASHBOARD ═══════════════ -->
 <div id="dashboard">
   <div class="db-header">
-    <div class="db-logo">DURKAY<br>KOŞUCULARI</div>
+    <div class="db-logo" onclick="goLanding()" style="cursor:pointer;">DURKAY<br>KOŞUCULARI</div>
     <div class="db-greeting">Merhaba, <span id="db-name">Koşucu</span> 👋</div>
     <div style="display:flex;gap:10px;align-items:center;">
       <button class="btn-secondary" onclick="showCommunity()" style="padding:8px 16px;font-size:12px;border-radius:100px;">👥 Tüm Takvimler</button>
@@ -1161,7 +1277,7 @@ function backToDashboard() {
 }
 
 // ═══════════ SUPABASE ═══════════
-const SUPABASE_URL = 'https://jorejosjrtkrlxydfzzs.supabase.co' ;
+const SUPABASE_URL = 'https://jorejosjrtkrlxydfzzs.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpvcmVqb3NqcnRrcmx4eWRmenpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4ODk2MzQsImV4cCI6MjA5MDQ2NTYzNH0.oJ8Rq2zgt_fb2V-T0WsweDPWWs-x1btzKGh_ZFeqUqg';
 
 async function sbFetch(path, opts={}) {
@@ -1267,9 +1383,55 @@ async function loadSharedCalendar(slug) {
   showSnapshot();
 }
 
+let communityOrigin = 'landing'; // 'landing' | 'snapshot' | 'dashboard'
+
+async function showCommunity() {
+  communityOrigin = state.selectedIds.size > 0 ? 'snapshot' : 'dashboard';
+  document.getElementById('snapshot').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('community').style.display = 'block';
+  window.scrollTo(0,0);
+  await loadCommunityList();
+}
+
+async function loadCommunityList() {
+  const list = document.getElementById('community-list');
+  list.innerHTML = '<div style="color:var(--muted);font-size:14px;">Yükleniyor...</div>';
+  try {
+    const data = await sbFetch('calendars?select=*&order=created_at.desc&limit=50');
+    if (!data || data.length === 0) {
+      list.innerHTML = '<div style="color:var(--muted);font-size:14px;">Henüz kaydedilmiş takvim yok.</div>';
+      return;
+    }
+    list.innerHTML = data.map(c => {
+      const races = RACES.filter(r => c.race_ids.includes(r.id));
+      const trCount = races.filter(r=>r.tr).length;
+      const abroad = races.length - trCount;
+      const months = [...new Set(races.map(r=>r.month))];
+      return `<div onclick="loadSharedCalendar('${c.slug}')" style="background:var(--slate);border:1.5px solid rgba(255,255,255,0.06);border-radius:14px;padding:20px;cursor:pointer;transition:all .2s;" onmouseover="this.style.borderColor='rgba(200,241,53,0.4)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.06)'">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;margin-bottom:4px;">${c.name}</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">${new Date(c.created_at).toLocaleDateString('tr-TR')}</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <span style="font-size:13px;color:var(--lime);font-weight:700;">${races.length} yarış</span>
+          <span style="font-size:12px;color:var(--muted);">🇹🇷 ${trCount} · 🌍 ${abroad}</span>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--muted);">${months.join(' · ')}</div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    list.innerHTML = '<div style="color:var(--orange);font-size:14px;">Yüklenemedi.</div>';
+  }
+}
+
 function showCommunityBack() {
   document.getElementById('community').style.display = 'none';
-  document.getElementById('snapshot').style.display = 'block';
+  if (communityOrigin === 'snapshot') {
+    document.getElementById('snapshot').style.display = 'block';
+  } else if (communityOrigin === 'dashboard') {
+    document.getElementById('dashboard').style.display = 'block';
+  } else {
+    document.getElementById('landing').style.display = 'flex';
+  }
 }
 
 // URL'de ?takvim= varsa direkt yükle
@@ -1277,7 +1439,7 @@ async function checkUrlCalendar() {
   const params = new URLSearchParams(window.location.search);
   const slug = params.get('takvim');
   if (!slug) return;
-  document.getElementById('onboarding').style.display = 'none';
+  document.getElementById('landing').style.display = 'none';
   const data = await sbFetch(`calendars?slug=eq.${slug}&select=*`);
   if (data && data[0]) {
     const c = data[0];
@@ -1288,6 +1450,32 @@ async function checkUrlCalendar() {
   }
 }
 checkUrlCalendar();
+
+function goLanding() {
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('snapshot').style.display = 'none';
+  document.getElementById('community').style.display = 'none';
+  document.getElementById('onboarding').style.display = 'none';
+  document.getElementById('landing').style.display = 'flex';
+  window.scrollTo(0,0);
+}
+
+function goOnboarding() {
+  document.getElementById('landing').style.display = 'none';
+  document.getElementById('onboarding').style.display = 'flex';
+}
+
+function goLandingCommunity() {
+  document.getElementById('landing').style.display = 'none';
+  showCommunityFromLanding();
+}
+
+async function showCommunityFromLanding() {
+  communityOrigin = 'landing';
+  document.getElementById('community').style.display = 'block';
+  window.scrollTo(0,0);
+  await loadCommunityList();
+}
 
 function copyShareLink() {
   const names = RACES.filter(r=>state.selectedIds.has(r.id)).map(r=>r.name).join(', ');
