@@ -411,9 +411,12 @@
   <div class="db-header">
     <div class="db-logo">DURKAY<br>KOŞUCULARI</div>
     <div class="db-greeting">Merhaba, <span id="db-name">Koşucu</span> 👋</div>
-    <button class="db-snapshot-btn" onclick="showSnapshot()">
-      📋 Takvimimi Gör (<span id="sel-count-header">0</span>)
-    </button>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <button class="btn-secondary" onclick="showCommunity()" style="padding:8px 16px;font-size:12px;border-radius:100px;">👥 Tüm Takvimler</button>
+      <button class="db-snapshot-btn" onclick="showSnapshot()">
+        📋 Takvimimi Gör (<span id="sel-count-header">0</span>)
+      </button>
+    </div>
   </div>
   <div class="db-layout">
     <div class="db-sidebar">
@@ -480,10 +483,30 @@
   <div id="snap-map" style="height:380px;border-radius:16px;overflow:hidden;margin-top:20px;"></div>
 
   <div class="snap-action-bar">
-    <button class="btn-primary"   onclick="copyShareLink()">🔗 Paylaş</button>
-    <button class="btn-secondary" onclick="printSnapshot()">🖨 İndir / Yazdır</button>
+    <button class="btn-primary"   id="save-btn" onclick="saveCalendar()">💾 Kaydet & Paylaş</button>
+    <button class="btn-secondary" onclick="showCommunity()">👥 Tüm Takvimler</button>
+    <button class="btn-secondary" onclick="printSnapshot()">🖨 İndir</button>
     <button class="btn-secondary" onclick="backToDashboard()">✏️ Düzenle</button>
   </div>
+  <div id="share-link-box" style="display:none;margin-top:16px;background:var(--slate);border-radius:12px;padding:14px 18px;">
+    <div style="font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">Paylaşım Linkin</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input id="share-link-input" readonly style="flex:1;background:transparent;border:none;color:var(--lime);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;">
+      <button onclick="copyShareUrl()" style="background:var(--lime);color:var(--navy);border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;">Kopyala</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ TOPLULUK ═══════════════ -->
+<div id="community" style="display:none;min-height:100vh;padding:40px 32px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;">
+    <div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:3px;color:var(--lime);margin-bottom:4px;">DURKAY KOŞUCULARI</div>
+      <h1 style="font-family:'Bebas Neue',sans-serif;font-size:40px;line-height:1;">TAKVIMLER</h1>
+    </div>
+    <button class="btn-secondary" onclick="showCommunityBack()" style="padding:9px 20px;font-size:13px;">← Geri</button>
+  </div>
+  <div id="community-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;"></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1136,6 +1159,135 @@ function backToDashboard() {
   document.getElementById('snapshot').style.display='none';
   document.getElementById('dashboard').style.display='block';
 }
+
+// ═══════════ SUPABASE ═══════════
+const SUPABASE_URL = https://jorejosjrtkrlxydfzzs.supabase.co;
+const SUPABASE_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpvcmVqb3NqcnRrcmx4eWRmenpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4ODk2MzQsImV4cCI6MjA5MDQ2NTYzNH0.oJ8Rq2zgt_fb2V-T0WsweDPWWs-x1btzKGh_ZFeqUqg;
+
+async function sbFetch(path, opts={}) {
+  const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': opts.prefer || 'return=representation',
+    },
+    ...opts
+  });
+  return res.json();
+}
+
+function slugify(name) {
+  return name.toLowerCase()
+    .replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s')
+    .replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c')
+    .replace(/[^a-z0-9]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
+}
+
+async function saveCalendar() {
+  const btn = document.getElementById('save-btn');
+  btn.textContent = '⏳ Kaydediliyor...';
+  btn.disabled = true;
+
+  const name = state.name || 'Koşucu';
+  const baseSlug = slugify(name);
+  const slug = baseSlug + '-' + Math.random().toString(36).slice(2,6);
+  const raceIds = [...state.selectedIds];
+
+  try {
+    const data = await sbFetch('calendars', {
+      method: 'POST',
+      prefer: 'return=representation',
+      body: JSON.stringify({ name, slug, race_ids: raceIds })
+    });
+
+    if (data && data[0]) {
+      const url = window.location.origin + window.location.pathname + '?takvim=' + slug;
+      document.getElementById('share-link-input').value = url;
+      document.getElementById('share-link-box').style.display = 'block';
+      btn.textContent = '✅ Kaydedildi!';
+      showToast('Takvim kaydedildi! 🎉');
+    } else {
+      throw new Error('Kayıt başarısız');
+    }
+  } catch(e) {
+    btn.textContent = '💾 Kaydet & Paylaş';
+    btn.disabled = false;
+    showToast('Hata oluştu, tekrar dene.');
+  }
+}
+
+function copyShareUrl() {
+  const val = document.getElementById('share-link-input').value;
+  navigator.clipboard.writeText(val).then(() => showToast('Link kopyalandı! 🔗'));
+}
+
+async function showCommunity() {
+  document.getElementById('snapshot').style.display = 'none';
+  document.getElementById('community').style.display = 'block';
+  window.scrollTo(0,0);
+
+  const list = document.getElementById('community-list');
+  list.innerHTML = '<div style="color:var(--muted);font-size:14px;">Yükleniyor...</div>';
+
+  try {
+    const data = await sbFetch('calendars?select=*&order=created_at.desc&limit=50');
+    if (!data || data.length === 0) {
+      list.innerHTML = '<div style="color:var(--muted);font-size:14px;">Henüz kaydedilmiş takvim yok.</div>';
+      return;
+    }
+    list.innerHTML = data.map(c => {
+      const races = RACES.filter(r => c.race_ids.includes(r.id));
+      const trCount = races.filter(r=>r.tr).length;
+      const abroad = races.length - trCount;
+      const months = [...new Set(races.map(r=>r.month))];
+      return `<div onclick="loadSharedCalendar('${c.slug}')" style="background:var(--slate);border:1.5px solid rgba(255,255,255,0.06);border-radius:14px;padding:20px;cursor:pointer;transition:all .2s;" onmouseover="this.style.borderColor='rgba(200,241,53,0.4)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.06)'">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--white);margin-bottom:4px;">${c.name}</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">${new Date(c.created_at).toLocaleDateString('tr-TR')}</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <span style="font-size:13px;color:var(--lime);font-weight:700;">${races.length} yarış</span>
+          <span style="font-size:12px;color:var(--muted);">🇹🇷 ${trCount} · 🌍 ${abroad}</span>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--muted);">${months.join(' · ')}</div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    list.innerHTML = '<div style="color:var(--orange);font-size:14px;">Yüklenemedi.</div>';
+  }
+}
+
+async function loadSharedCalendar(slug) {
+  const data = await sbFetch(`calendars?slug=eq.${slug}&select=*`);
+  if (!data || !data[0]) return;
+  const c = data[0];
+  state.name = c.name;
+  state.selectedIds = new Set(c.race_ids);
+  document.getElementById('community').style.display = 'none';
+  document.getElementById('snapshot').style.display = 'block';
+  showSnapshot();
+}
+
+function showCommunityBack() {
+  document.getElementById('community').style.display = 'none';
+  document.getElementById('snapshot').style.display = 'block';
+}
+
+// URL'de ?takvim= varsa direkt yükle
+async function checkUrlCalendar() {
+  const params = new URLSearchParams(window.location.search);
+  const slug = params.get('takvim');
+  if (!slug) return;
+  document.getElementById('onboarding').style.display = 'none';
+  const data = await sbFetch(`calendars?slug=eq.${slug}&select=*`);
+  if (data && data[0]) {
+    const c = data[0];
+    state.name = c.name;
+    state.selectedIds = new Set(c.race_ids);
+    document.getElementById('snapshot').style.display = 'block';
+    showSnapshot();
+  }
+}
+checkUrlCalendar();
 
 function copyShareLink() {
   const names = RACES.filter(r=>state.selectedIds.has(r.id)).map(r=>r.name).join(', ');
